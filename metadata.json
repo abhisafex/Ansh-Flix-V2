@@ -1,0 +1,8 @@
+{
+  "name": "Remix Ansh\u0027s Flix v2",
+  "description": "Full-featured streaming web application utilizing 20+ reverse-engineered embed providers with TMDB integration, series episode navigation, server switcher, and inspector.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
