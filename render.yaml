@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ansh-flix
+    env: node
+    plan: free
+    buildCommand: bun install && bun run build
+    startCommand: bun run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
