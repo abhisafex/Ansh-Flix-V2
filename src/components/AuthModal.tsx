@@ -17,6 +17,7 @@ export const AuthModal: React.FC = () => {
   const { 
     isAuthModalOpen, 
     setIsAuthModalOpen, 
+    checkUser,
     sendOtp, 
     verifyOtp, 
     setPinAndRegister, 
@@ -38,6 +39,24 @@ export const AuthModal: React.FC = () => {
   const [isExistingUser, setIsExistingUser] = useState(false);
   const [demoOtpCode, setDemoOtpCode] = useState<string | null>(null);
 
+  // Auto-initialize with remembered email and direct 4-digit PIN login
+  React.useEffect(() => {
+    if (isAuthModalOpen) {
+      try {
+        const lastEmail = localStorage.getItem('anshsflix_last_email');
+        if (lastEmail && lastEmail.includes('@')) {
+          setEmail(lastEmail);
+          setIsExistingUser(true);
+          setStep('pin_login');
+        } else {
+          setStep('email');
+        }
+      } catch {
+        setStep('email');
+      }
+    }
+  }, [isAuthModalOpen]);
+
   if (!isAuthModalOpen) return null;
 
   const handleClose = () => {
@@ -57,10 +76,11 @@ export const AuthModal: React.FC = () => {
     }, 200);
   };
 
-  // Step 1: Send OTP
-  const handleSendOtp = async (e: React.FormEvent) => {
+  // Step 1: Submit Email -> If already registered with PIN, go DIRECT to 4-Digit PIN (No OTP needed!)
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !email.includes('@')) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
       setErrorMsg('Please enter a valid email address');
       return;
     }
@@ -71,17 +91,29 @@ export const AuthModal: React.FC = () => {
     setEmailNotConfigured(false);
     setDemoOtpCode(null);
 
-    const res = await sendOtp(email);
+    // Check if account already exists with a PIN
+    const status = await checkUser(cleanEmail);
+
+    if (status.exists && status.hasPin) {
+      // Existing user: DIRECT TO 4-DIGIT PIN LOGIN! NO OTP REQUIRED!
+      setIsLoading(false);
+      setIsExistingUser(true);
+      setStep('pin_login');
+      return;
+    }
+
+    // New user (or no PIN set yet): Send OTP
+    const res = await sendOtp(cleanEmail);
     setIsLoading(false);
 
     if (res.success) {
       setIsExistingUser(!!res.isRegistered);
       if (res.demoOtp) {
         setDemoOtpCode(res.demoOtp);
-        setOtp(res.demoOtp); // Auto-fill for convenience
+        setOtp(res.demoOtp);
         setSuccessMsg(`Instant Verification Code generated: ${res.demoOtp}`);
       } else {
-        setSuccessMsg(`Verification code sent to ${email}. Please check your inbox and spam.`);
+        setSuccessMsg(`Verification code sent to ${cleanEmail}. Please check your inbox and spam.`);
       }
       setStep('otp');
     } else {
@@ -92,10 +124,31 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  // Switch to PIN Login if user already has an account and remembers PIN
+  // Switch to PIN Login
   const handleSwitchToPinLogin = () => {
     setErrorMsg(null);
     setStep('pin_login');
+  };
+
+  // Send OTP for Forgot PIN or verification
+  const handleRequestOtp = async () => {
+    if (!email.trim() || !email.includes('@')) {
+      setStep('email');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMsg(null);
+    const res = await sendOtp(email);
+    setIsLoading(false);
+    if (res.success) {
+      if (res.demoOtp) {
+        setDemoOtpCode(res.demoOtp);
+        setOtp(res.demoOtp);
+      }
+      setStep('otp');
+    } else {
+      setErrorMsg(res.error || 'Failed to send OTP');
+    }
   };
 
   // Step 2: Verify OTP
@@ -224,7 +277,7 @@ export const AuthModal: React.FC = () => {
 
         {/* STEP 1: Enter Email Form */}
         {step === 'email' && (
-          <form onSubmit={handleSendOtp} className="space-y-4">
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 Email Address
@@ -251,19 +304,19 @@ export const AuthModal: React.FC = () => {
               {isLoading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Sending Code to Email...</span>
+                  <span>Checking Account...</span>
                 </>
               ) : (
                 <>
-                  <span>Send Code to Email</span>
+                  <span>Continue</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
 
             <div className="pt-2 border-t border-slate-800 text-center">
-              <span className="text-[11px] text-slate-500">
-                A 6-digit code will be delivered directly to your inbox.
+              <span className="text-[11px] text-slate-400">
+                Existing users login instantly with 4-Digit PIN. New users verify with OTP.
               </span>
             </div>
           </form>
@@ -349,7 +402,7 @@ export const AuthModal: React.FC = () => {
             <div className="flex items-center justify-between pt-1 text-xs">
               <button
                 type="button"
-                onClick={handleSendOtp}
+                onClick={handleRequestOtp}
                 disabled={isLoading}
                 className="text-slate-400 hover:text-slate-200 hover:underline cursor-pointer flex items-center gap-1 text-[11px]"
               >
@@ -477,13 +530,10 @@ export const AuthModal: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setStep('otp');
-                  sendOtp(email);
-                }}
+                onClick={handleRequestOtp}
                 className="text-rose-400 hover:underline cursor-pointer"
               >
-                Forgot PIN? Use OTP
+                Forgot PIN? Reset with OTP
               </button>
             </div>
           </form>

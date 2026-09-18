@@ -1208,6 +1208,22 @@ app.post('/api/auth/login-pin', (req: Request, res: Response) => {
   });
 });
 
+// 4b. Check if user exists & has PIN
+app.post('/api/auth/check-user', (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ success: false, error: 'Email is required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const user = usersDb.get(cleanEmail);
+  return res.json({
+    success: true,
+    exists: !!user,
+    hasPin: !!(user && user.pin)
+  });
+});
+
 // 5. User Data Sync (Preferences, Continue Watching, Watchlist)
 app.post('/api/user/sync', (req: Request, res: Response) => {
   const { email, preferences, continueWatching, watchlist } = req.body;

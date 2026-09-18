@@ -15,6 +15,7 @@ import {
   Minimize2, 
   ChevronRight, 
   ChevronLeft,
+  ChevronDown,
   Share2,
   Info,
   Sparkles,
@@ -417,142 +418,51 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
         </div>
       )}
 
-      {/* Top Streamlined Header Bar: Back, Title, Server Switcher Button, Auto Play, Actions */}
-      <div className="w-full flex items-center justify-between gap-2 p-1.5 sm:p-2 bg-slate-900/90 border border-slate-800 rounded-xl shadow-md text-xs">
-        {/* Left: Navigation, Title & Badges */}
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+      {/* Top Streamlined Header Bar: Back, Title, and ONLY Change Server Option */}
+      <div className="w-full flex items-center justify-between gap-2 p-1.5 sm:p-2 bg-slate-900/95 border border-slate-800 rounded-xl shadow-md text-xs">
+        {/* Left: Navigation & Title */}
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           <button
             onClick={onBackToBrowse}
-            className="hover:text-white flex items-center gap-1 font-medium bg-slate-800 hover:bg-slate-700 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-slate-700 text-slate-200 transition-colors cursor-pointer shrink-0"
+            className="hover:text-white flex items-center gap-1 font-medium bg-slate-800 hover:bg-slate-700 px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-700 text-slate-200 transition-colors cursor-pointer shrink-0 active:scale-95"
             title="Return to Catalog"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Back</span>
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs">Back</span>
           </button>
 
-          <span className="text-slate-200 font-semibold truncate text-xs sm:text-sm">
-            {detailedMedia.title}
-          </span>
-
-          {isTv && (
-            <span className="px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700 font-mono text-[10px] sm:text-[11px] shrink-0 font-bold">
-              S{currentSeason}:E{currentEpisode}
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
+            <span className="text-slate-100 font-semibold truncate text-xs sm:text-sm">
+              {detailedMedia.title}
             </span>
-          )}
 
-          {/* Server Selector Trigger Button */}
+            {isTv && (
+              <span className="px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700 font-mono text-[10px] sm:text-[11px] shrink-0 font-bold">
+                S{currentSeason}:E{currentEpisode}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Right: ONLY Server Switcher Button */}
+        <div className="flex items-center shrink-0">
           <button
             type="button"
             onClick={() => {
               setIsFailurePrompt(false);
               setShowServerModal(true);
             }}
-            className="px-2.5 py-1 rounded-md border text-[11px] font-semibold items-center gap-1.5 shrink-0 transition-all cursor-pointer flex bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+            className="px-2.5 sm:px-3.5 py-1.5 rounded-lg border text-xs font-semibold items-center gap-1.5 shrink-0 transition-all cursor-pointer flex bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25 active:scale-95 shadow-sm"
             title="Click to Choose Another Server"
           >
-            <Server className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate max-w-[90px] sm:max-w-none">{selectedProvider.name}</span>
-            <span className="text-[10px] underline font-normal opacity-80">
-              Change Server
+            <Server className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span className="text-white font-medium truncate max-w-[110px] xs:max-w-[140px] sm:max-w-none">
+              {selectedProvider.name}
             </span>
-          </button>
-        </div>
-
-        {/* Right: Series Auto-Play, Auto-Click, Popup Shield & Action Controls */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Auto-Click Play Button Toggle */}
-          <button
-            type="button"
-            onClick={toggleAutoClickPlay}
-            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-              autoClickPlay
-                ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-            title={autoClickPlay ? 'Auto-Click on Play Button is ON (Automatically clicks & triggers video play upon load)' : 'Auto-Click on Play is OFF'}
-          >
-            <Zap className={`w-3.5 h-3.5 ${autoClickPlay ? 'text-rose-400 fill-rose-400' : 'text-slate-500'}`} />
-            <span className="hidden sm:inline">Auto-Click</span>
-            <span className={`px-1 py-0.2 rounded text-[10px] font-bold ${
-              autoClickPlay ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-400'
-            }`}>
-              {autoClickPlay ? 'ON' : 'OFF'}
+            <span className="hidden sm:inline text-[10px] text-rose-300/80 font-normal">
+              ({selectedProvider.quality})
             </span>
-          </button>
-
-          {/* Popup & New Tab Shield Toggle */}
-          <button
-            type="button"
-            onClick={togglePopupShield}
-            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-              popupShieldActive
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-            title={popupShieldActive ? 'Popup & New Tab Blocker is ACTIVE (All popups and ad tabs are blocked)' : 'Popup Blocker is OFF'}
-          >
-            <ShieldCheck className={`w-3.5 h-3.5 ${popupShieldActive ? 'text-emerald-400' : 'text-slate-500'}`} />
-            <span className="hidden md:inline">Popup Shield</span>
-            <span className={`px-1 py-0.2 rounded text-[10px] font-bold ${
-              popupShieldActive ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'
-            }`}>
-              {popupShieldActive ? 'ON' : 'OFF'}
-            </span>
-            {blockedPopupCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-emerald-700 text-white text-[9px] font-bold">
-                {blockedPopupCount}
-              </span>
-            )}
-          </button>
-
-          {/* Series Auto-Play Switch */}
-          {isTv && (
-            <button
-              type="button"
-              onClick={toggleAutoPlay}
-              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                autoPlay
-                  ? 'bg-sky-500/15 border-sky-500/40 text-sky-300 hover:bg-sky-500/25'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-              }`}
-              title={autoPlay ? 'Auto Play is ON: Next episode queues automatically' : 'Auto Play is OFF'}
-            >
-              <Sparkles className={`w-3.5 h-3.5 ${autoPlay ? 'text-sky-400' : 'text-slate-500'}`} />
-              <span className="hidden md:inline">Auto Play</span>
-              <span className={`px-1 py-0.2 rounded text-[10px] font-bold ${
-                autoPlay ? 'bg-sky-500 text-white' : 'bg-slate-700 text-slate-400'
-              }`}>
-                {autoPlay ? 'ON' : 'OFF'}
-              </span>
-            </button>
-          )}
-
-          <button
-            onClick={toggleBookmark}
-            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-              isBookmarked
-                ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-            }`}
-            title={isBookmarked ? 'Remove from Watchlist' : 'Add to Watchlist'}
-          >
-            <Bookmark className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={handleReload}
-            className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-            title="Reload Video Stream (Double click if server failed)"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={() => setTheaterMode(!theaterMode)}
-            className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer hidden sm:flex"
-            title={theaterMode ? 'Exit Theater Mode' : 'Theater Mode'}
-          >
-            {theaterMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <ChevronDown className="w-3 h-3 text-rose-400 shrink-0 opacity-80" />
           </button>
         </div>
       </div>
@@ -626,12 +536,12 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
 
           {/* TV Episode Next/Prev & AutoPlay Controller Bar (Directly attached under player) */}
           {isTv && (
-            <div className="bg-slate-900/95 border-t border-slate-800 p-2 sm:p-2.5 px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0">
+            <div className="bg-slate-900/95 border-t border-slate-800 p-2 sm:p-2.5 px-2.5 sm:px-4 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0">
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <button
                   onClick={handlePrevEpisode}
                   disabled={currentSeason === 1 && currentEpisode === 1}
-                  className="px-2.5 sm:px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-200 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                  className="px-2 sm:px-3 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-200 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                   title="Previous Episode"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
@@ -642,10 +552,10 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
                 <button
                   onClick={handleNextEpisode}
                   disabled={currentSeason === totalSeasons && currentEpisode === episodesCount}
-                  className="px-2.5 sm:px-3 py-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-30 disabled:hover:bg-rose-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-sm shadow-rose-600/30"
+                  className="px-2 sm:px-3 py-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-30 disabled:hover:bg-rose-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-sm shadow-rose-600/30"
                   title="Next Episode"
                 >
-                  <span>Next Ep</span>
+                  <span>Next</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
 
@@ -655,11 +565,11 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
               </div>
 
               {/* Center/Right: Episode Selector & Auto Play indicator */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <select
                   value={currentEpisode}
                   onChange={(e) => setCurrentEpisode(Number(e.target.value))}
-                  className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-rose-500 max-w-[130px] xs:max-w-[200px] sm:max-w-[260px] truncate"
                 >
                   {computedEpisodes.map((ep: any) => (
                     <option key={ep.episode} value={ep.episode}>

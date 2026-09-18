@@ -8,6 +8,7 @@ interface AuthContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   isAccountModalOpen: boolean;
   setIsAccountModalOpen: (open: boolean) => void;
+  checkUser: (email: string) => Promise<{ exists: boolean; hasPin: boolean }>;
   sendOtp: (email: string) => Promise<{ 
     success: boolean; 
     message?: string; 
@@ -136,6 +137,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: false, error: 'Invalid verification code' };
   };
 
+  // Check if user exists & has PIN
+  const checkUser = async (email: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const res = await fetch('/api/auth/check-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail })
+      });
+      const data = await res.json();
+      return { exists: !!data.exists, hasPin: !!data.hasPin };
+    } catch {
+      return { exists: false, hasPin: false };
+    }
+  };
+
   // Set 4-digit PIN and Register
   const setPinAndRegister = async (email: string, otp: string, pin: string) => {
     const cleanEmail = email.trim().toLowerCase();
@@ -148,6 +165,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       if (data.success && data.user) {
         setUser(data.user);
+        try {
+          localStorage.setItem('anshsflix_last_email', cleanEmail);
+        } catch {}
         setIsAuthModalOpen(false);
         return { success: true };
       }
@@ -163,6 +183,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         watchlist: []
       };
       setUser(newUser);
+      try {
+        localStorage.setItem('anshsflix_last_email', cleanEmail);
+      } catch {}
       setIsAuthModalOpen(false);
       return { success: true };
     }
@@ -180,6 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       if (data.success && data.user) {
         setUser(data.user);
+        try {
+          localStorage.setItem('anshsflix_last_email', cleanEmail);
+        } catch {}
         setIsAuthModalOpen(false);
         return { success: true };
       }
@@ -330,6 +356,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAuthModalOpen,
         isAccountModalOpen,
         setIsAccountModalOpen,
+        checkUser,
         sendOtp,
         verifyOtp,
         setPinAndRegister,

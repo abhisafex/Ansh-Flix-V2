@@ -24,8 +24,10 @@ import { NetworkInspector } from './components/NetworkInspector';
 import { MobileFilterDrawer } from './components/MobileFilterDrawer';
 import { AuthModal } from './components/AuthModal';
 import { AccountModal } from './components/AccountModal';
+import { useAuth } from './context/AuthContext';
 
 export default function App() {
+  const { isLoggedIn } = useAuth();
   const [activeTab, setActiveTab] = useState<'browse' | 'player' | 'generator' | 'providers' | 'decryption' | 'architecture' | 'network'>('browse');
   const [activeCategory, setActiveCategory] = useState<string>('trending');
   const [selectedMedia, setSelectedMedia] = useState<MediaItem>(SAMPLE_MEDIA[0]);
@@ -233,7 +235,7 @@ export default function App() {
       <MobileFilterDrawer
         isOpen={mobileDrawerOpen}
         onClose={() => setMobileDrawerOpen(false)}
-        categories={CATEGORIES}
+        categories={CATEGORIES.filter(c => c.id !== 'watchlist' || isLoggedIn)}
         selectedCategory={activeCategory}
         onSelectCategory={(cat) => {
           handleSelectCategory(cat);

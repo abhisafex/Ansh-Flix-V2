@@ -40,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenMobileDrawer,
   onSearchInCatalog
 }) => {
-  const { user, setIsAuthModalOpen, setIsAccountModalOpen } = useAuth();
+  const { user, isLoggedIn, setIsAuthModalOpen, setIsAccountModalOpen } = useAuth();
   const [navSearch, setNavSearch] = useState('');
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -215,17 +215,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Bollywood</span>
             </button>
 
-            <button
-              onClick={() => handleNavCategory('watchlist')}
-              className={`px-3 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'browse' && activeCategory === 'watchlist'
-                  ? 'text-white bg-rose-600 font-bold shadow-sm shadow-rose-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-900/90'
-              }`}
-            >
-              <Bookmark className="w-3.5 h-3.5" />
-              <span>Watchlist</span>
-            </button>
+            {isLoggedIn && (
+              <button
+                onClick={() => handleNavCategory('watchlist')}
+                className={`px-3 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'browse' && activeCategory === 'watchlist'
+                    ? 'text-white bg-rose-600 font-bold shadow-sm shadow-rose-600/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-900/90'
+                }`}
+              >
+                <Bookmark className="w-3.5 h-3.5" />
+                <span>Watchlist</span>
+              </button>
+            )}
           </nav>
 
           {/* Prominent & Redesigned Search Bar */}

@@ -113,7 +113,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   onSearchChange,
   onOpenMobileDrawer
 }) => {
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const continueWatchingList = user?.continueWatching || [];
   const selectedCategory = activeCategory;
   const [internalGenre, setInternalGenre] = useState<string>('all');
@@ -759,7 +759,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
         {/* Horizontal Category Selectors */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {CATEGORIES.map((cat) => {
+          {CATEGORIES.filter(cat => cat.id !== 'watchlist' || isLoggedIn).map((cat) => {
             const isActive = selectedCategory === cat.id && activeSearch.trim() === '';
             return (
               <button
