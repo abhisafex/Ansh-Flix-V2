@@ -2,9 +2,18 @@
 
 let popupBlockCount = 0;
 let isShieldInitialized = false;
+let isShieldEnabled = true;
 
 type PopupListener = (count: number, url?: string) => void;
 const listeners: Set<PopupListener> = new Set();
+
+export function setPopupShieldEnabled(enabled: boolean) {
+  isShieldEnabled = enabled;
+}
+
+export function isPopupShieldActive(): boolean {
+  return isShieldEnabled;
+}
 
 export function subscribePopupBlocked(listener: PopupListener): () => void {
   listeners.add(listener);
@@ -39,6 +48,10 @@ export function initPopupShield() {
       target?: string,
       features?: string
     ): WindowProxy | null {
+      if (!isShieldEnabled) {
+        return originalWindowOpen.call(window, url, target, features);
+      }
+
       const urlString = url ? String(url) : '';
       console.warn('[POPUP SHIELD] Blocked attempt to open popup / new tab:', {
         url: urlString,
@@ -65,6 +78,7 @@ export function initPopupShield() {
     document.addEventListener(
       'click',
       (event: MouseEvent) => {
+        if (!isShieldEnabled) return;
         const target = event.target as HTMLElement | null;
         if (!target) return;
 

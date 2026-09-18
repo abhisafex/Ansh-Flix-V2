@@ -34,7 +34,8 @@ import { useAuth } from '../context/AuthContext';
 import { 
   sendPlaySignalsToIframe, 
   simulateCenterClick, 
-  subscribePopupBlocked 
+  subscribePopupBlocked,
+  setPopupShieldEnabled 
 } from '../utils/popupShield';
 
 interface WatchPlayerProps {
@@ -139,12 +140,18 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
   const togglePopupShield = () => {
     setPopupShieldActive(prev => {
       const nextVal = !prev;
+      setPopupShieldEnabled(nextVal);
       try {
         localStorage.setItem('autostream_popup_shield', String(nextVal));
       } catch {}
       return nextVal;
     });
   };
+
+  // Sync popup shield state on mount
+  useEffect(() => {
+    setPopupShieldEnabled(popupShieldActive);
+  }, [popupShieldActive]);
 
   // Subscribe to popup blocker notifications
   useEffect(() => {
@@ -590,11 +597,6 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
               allowFullScreen
               allow="accelerometer; autoplay *; clipboard-write; encrypted-media *; gyroscope; picture-in-picture *; web-share"
               referrerPolicy="no-referrer"
-              sandbox={
-                popupShieldActive
-                  ? 'allow-forms allow-scripts allow-same-origin allow-presentation'
-                  : undefined
-              }
             />
 
             {/* Real-time Auto-Click Play Indicator */}
