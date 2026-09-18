@@ -83,14 +83,21 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSearchInCatalog = (query: string) => {
+    setSearchQuery(query);
+    setActiveCategory('all');
+    setActiveTab('browse');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleLaunchSandbox = (url: string, title: string) => {
     // If user clicks a link in the generator, we can set media or play
     setActiveTab('player');
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
-      {/* Top Navigation - AutoEmbed clean bar */}
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
+      {/* Top Navigation - Clean & Redesigned Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -103,6 +110,7 @@ export default function App() {
         selectedTitle={selectedMedia.title}
         onSelectMedia={handleSelectMedia}
         onOpenMobileDrawer={() => setMobileDrawerOpen(true)}
+        onSearchInCatalog={handleSearchInCatalog}
       />
 
       {/* Main Content Viewport */}

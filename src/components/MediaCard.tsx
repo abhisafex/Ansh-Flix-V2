@@ -8,15 +8,18 @@ interface MediaCardProps {
   onSelect: (item: MediaItem) => void;
   isBookmarked?: boolean;
   onToggleBookmark?: (item: MediaItem) => void;
+  size?: 'normal' | 'large';
 }
 
 export const MediaCard: React.FC<MediaCardProps> = ({
   item,
   onSelect,
   isBookmarked = false,
-  onToggleBookmark
+  onToggleBookmark,
+  size = 'normal'
 }) => {
-  const is4K = (item.rating && item.rating >= 8.0) || item.id === 693134 || item.id === 872585;
+  const isLarge = size === 'large';
+  const is4K = (item.rating && item.rating >= 7.5) || item.id === 693134 || item.id === 872585 || item.genres?.includes('Action');
 
   const releaseBadge = React.useMemo(() => {
     if (!item.releaseDate) return null;
@@ -96,26 +99,28 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       </div>
 
       {/* Card Info */}
-      <div className="p-3 flex-1 flex flex-col justify-between space-y-2 bg-slate-900/90">
+      <div className={`flex-1 flex flex-col justify-between bg-slate-900/95 ${isLarge ? 'p-3.5 space-y-2.5' : 'p-3 space-y-2'}`}>
         <div>
           <h4 
             onClick={() => onSelect(item)}
-            className="text-xs sm:text-sm font-semibold text-slate-100 group-hover:text-sky-400 transition-colors line-clamp-1 cursor-pointer"
+            className={`font-bold text-white group-hover:text-rose-400 transition-colors line-clamp-2 cursor-pointer leading-snug ${
+              isLarge ? 'text-sm sm:text-base min-h-[2.5rem]' : 'text-xs sm:text-sm min-h-[2.2rem]'
+            }`}
             title={item.title}
           >
             {item.title}
           </h4>
           {item.genres && item.genres.length > 0 && (
-            <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-              {item.genres.slice(0, 2).join(' • ')}
+            <p className="text-[11px] sm:text-xs text-slate-400 line-clamp-1 mt-1 font-medium">
+              {item.genres.slice(0, 3).join(' • ')}
             </p>
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
+        <div className="flex items-center justify-between pt-1.5 border-t border-slate-800 text-xs">
           <button
             onClick={() => onSelect(item)}
-            className="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 text-xs cursor-pointer transition-colors"
+            className="text-rose-400 hover:text-rose-300 font-bold flex items-center gap-1.5 text-xs cursor-pointer transition-colors"
           >
             <Play className="w-3 h-3 fill-current" />
             Watch Now

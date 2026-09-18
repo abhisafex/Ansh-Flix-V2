@@ -115,6 +115,7 @@ export const SmartPoster: React.FC<SmartPosterProps> = ({
       src={currentSrc || ''}
       alt={alt || title}
       loading="lazy"
+      referrerPolicy="no-referrer"
       onError={handleImageError}
       className={`${className} transition-opacity duration-300`}
     />

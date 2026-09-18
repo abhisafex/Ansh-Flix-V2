@@ -19,6 +19,15 @@ const TMDB_API_KEY = (process.env.TMDB_API_KEY && process.env.TMDB_API_KEY.trim(
 
 app.use(express.json());
 
+// Performance & Render Free-Tier Bandwidth Optimization:
+// Attach Cache-Control headers to read-only API requests (10 minutes public cache)
+app.use((req, res, next) => {
+  if (req.method === 'GET' && (req.path.startsWith('/api/tmdb') || req.path.startsWith('/api/poster'))) {
+    res.setHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800');
+  }
+  next();
+});
+
 // Genre mapping dictionary
 const GENRE_MAP: Record<number, string> = {
   28: 'Action',
@@ -1195,9 +1204,30 @@ app.get('/api/user/profile', (req: Request, res: Response) => {
   });
 });
 
-// Health endpoint
-app.get(['/api/health', '/health'], (req: Request, res: Response) => {
-  res.json({ status: 'ok', time: Date.now() });
+// ============================================================================
+// LIGHTWEIGHT HEALTH & CRON KEEPALIVE ENDPOINTS (Saves Render Free Tier Bandwidth)
+// ============================================================================
+// Cron jobs (e.g. UptimeRobot, cron-job.org) can hit:
+// https://ansh-flix-v2.onrender.com/health OR /ping OR /status
+// Returns an immediate 2-byte/minimal response without loading HTML, CSS, or TMDB.
+app.all(['/health', '/api/health', '/ping', '/api/ping', '/status', '/api/status'], (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('X-Render-Keepalive', 'ok');
+
+  if (req.method === 'HEAD') {
+    return res.status(200).end();
+  }
+
+  if (req.query.format === 'text' || req.headers.accept?.includes('text/plain')) {
+    return res.status(200).type('text/plain').send('OK');
+  }
+
+  return res.status(200).json({
+    status: 'ok',
+    service: 'Ansh Flix v2',
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Always return JSON 404 for unhandled API requests (prevents SPA HTML fallback for API calls)
@@ -1214,14 +1244,42 @@ async function start() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    const assetsPath = path.join(distPath, 'assets');
+
+    // 1. Aggressive 1-year immutable caching for Vite build assets (JS/CSS with unique content hashes)
+    if (fs.existsSync(assetsPath)) {
+      app.use('/assets', express.static(assetsPath, {
+        maxAge: '1y',
+        immutable: true,
+        etag: true,
+        lastModified: true
+      }));
+    }
+
+    // 2. 7-day caching for images, fonts, icons, svgs, and static resources
+    app.use(express.static(distPath, {
+      maxAge: '7d',
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          // Never cache HTML so new code updates and releases take effect immediately
+          res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        } else if (filePath.match(/\.(svg|png|jpg|jpeg|webp|ico|woff2|woff|ttf)$/i)) {
+          res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+        }
+      }
+    }));
+
+    // 3. Fallback for SPA routing
     app.get('*', (req: Request, res: Response) => {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Ansh's Flix v1 multi-server streaming running on http://localhost:${PORT}`);
+    console.log(`Ansh's Flix v2 multi-server streaming running on http://localhost:${PORT}`);
   });
 }
 

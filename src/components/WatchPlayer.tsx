@@ -447,13 +447,13 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
               setIsFailurePrompt(false);
               setShowServerModal(true);
             }}
-            className="px-2 py-0.5 sm:py-1 rounded-md border text-[10px] sm:text-[11px] font-semibold items-center gap-1.5 shrink-0 transition-all cursor-pointer flex bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+            className="px-2.5 py-1 rounded-md border text-[11px] font-semibold items-center gap-1.5 shrink-0 transition-all cursor-pointer flex bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
             title="Click to Choose Another Server"
           >
-            <Server className="w-3 h-3 shrink-0" />
-            <span className="truncate max-w-[85px] sm:max-w-none">{selectedProvider.name}</span>
-            <span className="text-[9px] sm:text-[10px] underline font-normal opacity-80">
-              Change
+            <Server className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate max-w-[90px] sm:max-w-none">{selectedProvider.name}</span>
+            <span className="text-[10px] underline font-normal opacity-80">
+              Change Server
             </span>
           </button>
         </div>
@@ -723,6 +723,9 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   {detailedMedia.type}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                  {selectedProvider.quality}
                 </span>
                 <span className="text-xs text-slate-400 font-mono">
                   {detailedMedia.year}
