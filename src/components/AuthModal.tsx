@@ -36,6 +36,7 @@ export const AuthModal: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [emailNotConfigured, setEmailNotConfigured] = useState(false);
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [demoOtpCode, setDemoOtpCode] = useState<string | null>(null);
 
   if (!isAuthModalOpen) return null;
 
@@ -52,6 +53,7 @@ export const AuthModal: React.FC = () => {
       setErrorMsg(null);
       setSuccessMsg(null);
       setEmailNotConfigured(false);
+      setDemoOtpCode(null);
     }, 200);
   };
 
@@ -67,13 +69,20 @@ export const AuthModal: React.FC = () => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setEmailNotConfigured(false);
+    setDemoOtpCode(null);
 
     const res = await sendOtp(email);
     setIsLoading(false);
 
     if (res.success) {
       setIsExistingUser(!!res.isRegistered);
-      setSuccessMsg(`Verification code sent to ${email}. Please check your inbox and spam folder.`);
+      if (res.demoOtp) {
+        setDemoOtpCode(res.demoOtp);
+        setOtp(res.demoOtp); // Auto-fill for convenience
+        setSuccessMsg(`Instant Verification Code generated: ${res.demoOtp}`);
+      } else {
+        setSuccessMsg(`Verification code sent to ${email}. Please check your inbox and spam.`);
+      }
       setStep('otp');
     } else {
       if (res.emailNotConfigured) {
@@ -266,11 +275,27 @@ export const AuthModal: React.FC = () => {
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 flex items-start gap-2.5">
               <Mail className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <div>
-                <span>Code sent to </span>
+                <span>Code for </span>
                 <strong className="text-white font-mono">{email}</strong>.
-                <span className="text-slate-400 block mt-0.5 text-[11px]">
-                  Please check your inbox (and spam folder) for the 6-digit code.
-                </span>
+                {demoOtpCode ? (
+                  <div className="mt-2 p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-mono block text-rose-400 font-bold">Render Quick Code:</span>
+                      <span className="text-base font-mono font-bold text-white tracking-widest">{demoOtpCode}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOtp(demoOtpCode)}
+                      className="px-2 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] cursor-pointer"
+                    >
+                      Auto-Fill
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 block mt-0.5 text-[11px]">
+                    Please check your inbox (and spam folder) for the 6-digit code.
+                  </span>
+                )}
               </div>
             </div>
 
