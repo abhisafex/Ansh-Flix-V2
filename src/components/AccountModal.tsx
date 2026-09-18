@@ -248,13 +248,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({ onSelectMedia, onPla
                   Select your preferred default server when opening any stream:
                 </p>
                 <select
-                  value={user.preferences.defaultServerId || 'videasy'}
+                  value={user.preferences.defaultServerId || 'vidlink'}
                   onChange={(e) => handlePreferenceChange('defaultServerId', e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-rose-500"
                 >
                   {PROVIDERS.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} {p.id === 'videasy' ? '(Recommended 4K UHD)' : ''}
+                      {p.name} {p.id === 'vidlink' ? '(Default Auto-Play)' : ''}
                     </option>
                   ))}
                 </select>

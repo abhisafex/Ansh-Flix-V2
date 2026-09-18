@@ -2,18 +2,19 @@ import { Provider } from '../types';
 
 export const PROVIDERS: Provider[] = [
   {
-    id: 'videasy',
-    name: '4K UHD (Videasy)',
+    id: 'vidlink',
+    name: 'VidLink',
     category: 'primary',
-    url: 'https://player.videasy.to',
-    domain: 'videasy.to',
-    countryCode: 'GB',
+    url: 'https://vidlink.pro',
+    domain: 'vidlink.pro',
+    countryCode: 'US',
     idType: 'tmdb',
     urlFormat: 'movie: /movie/{id} | tv: /tv/{id}/{season}/{episode}',
-    quality: '4K',
+    extraParams: '?primaryColor=f43f5e&secondaryColor=ffffff&iconColor=ffffff&title=false&poster=true&autoplay=true&nextEpisode=true',
+    quality: '1080p',
     supportedMedia: ['movie', 'tv'],
-    specialFeatures: ['4K Ultra HD resolution', 'Auto-play & auto-next episode support', 'High bitrate audio', 'Zero ad popups'],
-    notes: 'Primary default 4K/1080p high bitrate streaming engine with auto play support.'
+    specialFeatures: ['Instant Auto-Play', 'Clean player UI', 'Subtitles & Dual Audio', 'High Speed CDN'],
+    notes: 'Primary default streaming engine with native background autoplay and high speed CDN.'
   },
   {
     id: 'autoembed_co',
@@ -28,20 +29,6 @@ export const PROVIDERS: Provider[] = [
     supportedMedia: ['movie', 'tv'],
     specialFeatures: ['Embedded multi-server selector', 'No sandbox block', 'Direct HTML5 playback'],
     notes: 'Primary reliable server with built-in multi-host switching. Functions cleanly inside nested preview frames.'
-  },
-  {
-    id: 'autoembed_cc',
-    name: "Ansh's Flix Native",
-    category: 'primary',
-    url: 'https://player.autoembed.cc',
-    domain: 'autoembed.cc',
-    countryCode: 'US',
-    idType: 'tmdb',
-    urlFormat: 'movie: /embed/movie/{id} | tv: /embed/tv/{id}/{season}/{episode}',
-    quality: '1080p',
-    supportedMedia: ['movie', 'tv'],
-    specialFeatures: ['Direct brand server', 'Automatic multi-server fallback', 'HLS.js player'],
-    notes: "The flagship embed endpoint customized for Ansh's Flix v1."
   },
   {
     id: 'vidplus',
@@ -59,19 +46,32 @@ export const PROVIDERS: Provider[] = [
     notes: 'Features a built-in download link generator and auto-next queuing for binge watching.'
   },
   {
-    id: 'vidlink',
-    name: 'Echo (VidLink)',
+    id: 'videasy',
+    name: '4K UHD (Videasy)',
     category: 'primary',
-    url: 'https://vidlink.pro',
-    domain: 'vidlink.pro',
-    countryCode: 'US',
+    url: 'https://player.videasy.to',
+    domain: 'videasy.to',
+    countryCode: 'GB',
     idType: 'tmdb',
     urlFormat: 'movie: /movie/{id} | tv: /tv/{id}/{season}/{episode}',
-    extraParams: '?primaryColor=white&secondaryColor=white&iconColor=white&title=false&poster=true&autoplay=true',
+    quality: '4K',
+    supportedMedia: ['movie', 'tv'],
+    specialFeatures: ['4K Ultra HD resolution', 'Auto-play & auto-next episode support', 'High bitrate audio'],
+    notes: 'Primary 4K/1080p high bitrate streaming engine.'
+  },
+  {
+    id: 'autoembed_cc',
+    name: "Ansh's Flix Native",
+    category: 'primary',
+    url: 'https://player.autoembed.cc',
+    domain: 'autoembed.cc',
+    countryCode: 'US',
+    idType: 'tmdb',
+    urlFormat: 'movie: /embed/movie/{id} | tv: /embed/tv/{id}/{season}/{episode}',
     quality: '1080p',
     supportedMedia: ['movie', 'tv'],
-    specialFeatures: ['Clean UI', 'Custom theme colors', 'Subtitle selector', 'Speed controls'],
-    notes: 'One of the alternative providers. Note: If adblocker is active, VidLink may request opening in a new tab.'
+    specialFeatures: ['Direct brand server', 'Automatic multi-server fallback', 'HLS.js player'],
+    notes: "The flagship embed endpoint customized for Ansh's Flix v1."
   },
   {
     id: 'vidplus2',

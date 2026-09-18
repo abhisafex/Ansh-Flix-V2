@@ -1,0 +1,43 @@
+{
+  "abhi.safex@gmail.com": {
+    "email": "abhi.safex@gmail.com",
+    "pin": "2920",
+    "registeredAt": 1789718461094,
+    "preferences": {
+      "autoPlay": true,
+      "defaultServerId": "vidlink",
+      "preferredLanguage": "hi",
+      "subtitlesEnabled": true
+    },
+    "continueWatching": [
+      {
+        "mediaId": 190955,
+        "title": "Blood Ties",
+        "poster": "https://image.tmdb.org/t/p/w500/7tMuywiZUoaAihEIkCu3BAL1xPC.jpg",
+        "backdrop": "https://image.tmdb.org/t/p/original/wFWUOdQH9CI0VzQECZK8qgll3M3.jpg",
+        "type": "movie",
+        "providerId": "vidlink",
+        "watchedAt": 1789720756473
+      },
+      {
+        "mediaId": 1128546,
+        "title": "Barron's Cove",
+        "poster": "https://image.tmdb.org/t/p/w500/wo8qFjc2FLJdGg8FmnZeTxVBf7D.jpg",
+        "backdrop": "https://image.tmdb.org/t/p/original/i91YI9y3GS68rLNy6eKrH2NEzln.jpg",
+        "type": "movie",
+        "providerId": "vidlink",
+        "watchedAt": 1789720491578
+      },
+      {
+        "mediaId": 1355228,
+        "title": "Gandhari",
+        "poster": "https://image.tmdb.org/t/p/w500/aF3IhwS1mrVfvM9OMXmTaXAT0l8.jpg",
+        "backdrop": "https://image.tmdb.org/t/p/w500/aF3IhwS1mrVfvM9OMXmTaXAT0l8.jpg",
+        "type": "movie",
+        "providerId": "videasy",
+        "watchedAt": 1789720196587
+      }
+    ],
+    "watchlist": []
+  }
+}

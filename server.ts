@@ -901,7 +901,7 @@ function sanitizeUser(user: StoredUser) {
     registeredAt: user.registeredAt,
     preferences: user.preferences || {
       autoPlay: true,
-      defaultServerId: 'videasy',
+      defaultServerId: 'vidlink',
       preferredLanguage: 'hi',
       subtitlesEnabled: true
     },
@@ -1090,7 +1090,7 @@ app.post('/api/auth/set-pin', (req: Request, res: Response) => {
       registeredAt: Date.now(),
       preferences: {
         autoPlay: true,
-        defaultServerId: 'videasy',
+        defaultServerId: 'vidlink',
         preferredLanguage: 'hi',
         subtitlesEnabled: true
       },

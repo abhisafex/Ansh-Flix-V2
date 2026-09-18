@@ -17,7 +17,8 @@ export function buildStreamUrl(
       const base = isTv 
         ? `${provider.url}/tv/${id}/${season}/${episode}`
         : `${provider.url}/movie/${id}`;
-      return `${base}${provider.extraParams || '?primaryColor=white&secondaryColor=white&iconColor=white&title=false&poster=true&autoplay=true'}`;
+      const ap = autoplay ? 'true' : 'false';
+      return `${base}?primaryColor=f43f5e&secondaryColor=ffffff&iconColor=ffffff&title=false&poster=true&autoplay=${ap}&nextEpisode=true`;
     }
 
     case 'videasy': {

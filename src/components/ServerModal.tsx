@@ -164,7 +164,7 @@ export const ServerModal: React.FC<ServerModalProps> = ({
                         {p.quality}
                       </span>
 
-                      {p.id === 'videasy' && (
+                      {p.id === 'vidlink' && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                           Default
                         </span>

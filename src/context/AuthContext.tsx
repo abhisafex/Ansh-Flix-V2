@@ -22,7 +22,7 @@ interface AuthContextType {
 
 const defaultPreferences: UserPreferences = {
   autoPlay: true,
-  defaultServerId: 'videasy',
+  defaultServerId: 'vidlink',
   preferredLanguage: 'hi',
   subtitlesEnabled: true
 };
@@ -33,7 +33,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem('anshsflix_user_profile');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed: UserProfile = JSON.parse(saved);
+        if (parsed?.preferences) {
+          // Ensure default server migrates to vidlink if not explicitly set to something else
+          if (!parsed.preferences.defaultServerId || parsed.preferences.defaultServerId === 'videasy') {
+            parsed.preferences.defaultServerId = 'vidlink';
+          }
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
