@@ -964,8 +964,65 @@ function getEmailTransporter() {
 
 async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{ sent: boolean; error?: string; provider?: string }> {
   const resendApiKey = process.env.RESEND_API_KEY;
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
 
-  // 1. Try Resend HTTP REST API if key is present (Fastest & 100% reliable on Render/Cloud)
+  const emailHtml = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; background-color: #070b14; color: #f1f5f9; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; padding: 32px 24px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #f43f5e; font-size: 26px; font-weight: 800; margin: 0;">Ansh's Flix v2</h1>
+        <p style="color: #94a3b8; font-size: 13px; margin: 6px 0 0 0;">Streaming & Cinema Experience</p>
+      </div>
+      <div style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
+        <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px 0;">Your 6-digit verification code is:</p>
+        <div style="display: inline-block; background-color: #070b14; border: 2px solid #f43f5e; border-radius: 12px; padding: 12px 28px; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #ffffff; font-family: monospace;">
+          ${otpCode}
+        </div>
+        <p style="color: #64748b; font-size: 12px; margin: 16px 0 0 0;">This code will expire in 10 minutes.</p>
+      </div>
+      <div style="border-top: 1px solid #1e293b; padding-top: 16px; text-align: center;">
+        <p style="color: #64748b; font-size: 11px; margin: 0;">If you did not request this verification code, you can safely ignore this email.</p>
+      </div>
+    </div>
+  `;
+
+  // 1. Try Brevo (Sendinblue) HTTP API (Sends to ANY email address, 300 free/day, never blocked by Render)
+  if (brevoApiKey) {
+    try {
+      const senderEmail = process.env.EMAIL_FROM || process.env.GMAIL_USER || 'no-reply@anshsflix.com';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey.trim(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: "Ansh's Flix", email: senderEmail },
+          to: [{ email: toEmail }],
+          subject: `Your Ansh's Flix Verification Code: ${otpCode}`,
+          htmlContent: emailHtml
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        console.log(`[AUTH] Sent email via Brevo to ${toEmail}`);
+        return { sent: true, provider: 'brevo' };
+      } else {
+        const brevoErr = await res.json().catch(() => ({ message: res.statusText }));
+        console.warn('[AUTH] Brevo API error response:', res.status, brevoErr);
+      }
+    } catch (err: any) {
+      console.warn('[AUTH] Brevo delivery failed or timed out:', err?.message);
+    }
+  }
+
+  // 2. Try Resend HTTP REST API
   if (resendApiKey) {
     try {
       const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
@@ -982,21 +1039,7 @@ async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{ sent: b
           from: `Ansh's Flix <${fromEmail}>`,
           to: [toEmail],
           subject: `Your Ansh's Flix Verification Code: ${otpCode}`,
-          html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; background-color: #070b14; color: #f1f5f9; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; padding: 32px 24px;">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <h1 style="color: #f43f5e; font-size: 26px; font-weight: 800; margin: 0;">Ansh's Flix v2</h1>
-                <p style="color: #94a3b8; font-size: 13px; margin: 6px 0 0 0;">Streaming & Cinema Experience</p>
-              </div>
-              <div style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-                <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 16px 0;">Your 6-digit verification code is:</p>
-                <div style="display: inline-block; background-color: #070b14; border: 2px solid #f43f5e; border-radius: 12px; padding: 12px 28px; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #ffffff; font-family: monospace;">
-                  ${otpCode}
-                </div>
-                <p style="color: #64748b; font-size: 12px; margin: 16px 0 0 0;">This code will expire in 10 minutes.</p>
-              </div>
-            </div>
-          `
+          html: emailHtml
         }),
         signal: controller.signal
       });
@@ -1005,13 +1048,48 @@ async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{ sent: b
       if (res.ok) {
         console.log(`[AUTH] Sent email via Resend to ${toEmail}`);
         return { sent: true, provider: 'resend' };
+      } else {
+        const resendErr = await res.json().catch(() => ({ message: res.statusText }));
+        console.warn('[AUTH] Resend API error response:', res.status, resendErr);
       }
     } catch (err: any) {
       console.warn('[AUTH] Resend delivery failed or timed out:', err?.message);
     }
   }
 
-  // 2. Try Nodemailer (Gmail App Password or custom SMTP) with hard timeout
+  // 3. Try SendGrid HTTP API
+  if (sendgridApiKey) {
+    try {
+      const fromEmail = process.env.EMAIL_FROM || 'no-reply@anshsflix.com';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sendgridApiKey.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: toEmail }] }],
+          from: { email: fromEmail, name: "Ansh's Flix" },
+          subject: `Your Ansh's Flix Verification Code: ${otpCode}`,
+          content: [{ type: 'text/html', value: emailHtml }]
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      if (res.ok || res.status === 202) {
+        console.log(`[AUTH] Sent email via SendGrid to ${toEmail}`);
+        return { sent: true, provider: 'sendgrid' };
+      }
+    } catch (err: any) {
+      console.warn('[AUTH] SendGrid delivery failed or timed out:', err?.message);
+    }
+  }
+
+  // 4. Try Nodemailer (Gmail App Password or custom SMTP) with hard timeout
   try {
     const transporter = getEmailTransporter();
     if (!transporter) {
@@ -1057,6 +1135,27 @@ async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{ sent: b
     return { sent: false, error: err?.message || 'Failed to deliver email' };
   }
 }
+
+// Diagnostic endpoint to check which email variables are detected on Render
+app.get('/api/auth/debug-email', (req: Request, res: Response) => {
+  const resendKey = process.env.RESEND_API_KEY;
+  const brevoKey = process.env.BREVO_API_KEY;
+  const sendgridKey = process.env.SENDGRID_API_KEY;
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+  return res.json({
+    hasResendApiKey: !!resendKey,
+    resendKeyPrefix: resendKey ? `${resendKey.substring(0, 5)}...` : 'NONE',
+    hasBrevoApiKey: !!brevoKey,
+    hasSendgridApiKey: !!sendgridKey,
+    hasGmailUser: !!gmailUser,
+    gmailUser: gmailUser ? `${gmailUser.substring(0, 3)}***@...` : 'NONE',
+    hasGmailAppPassword: !!gmailPass,
+    emailFrom: process.env.EMAIL_FROM || 'NOT_SET',
+    renderSmtpNotice: 'Render free tier blocks SMTP ports 465/587 (Gmail). Use RESEND_API_KEY or BREVO_API_KEY (HTTPS REST API) for 100% successful delivery.'
+  });
+});
 
 // 1. Send OTP to email (Guaranteed non-blocking & fast)
 app.post('/api/auth/send-otp', async (req: Request, res: Response) => {
