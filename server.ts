@@ -1016,6 +1016,10 @@ async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{ sent: b
       } else {
         const brevoErr = await res.json().catch(() => ({ message: res.statusText }));
         console.warn('[AUTH] Brevo API error response:', res.status, brevoErr);
+        // If Resend is also present, try Resend next, otherwise return the error
+        if (!resendApiKey && !sendgridApiKey) {
+          return { sent: false, error: `Brevo error (${res.status}): ${JSON.stringify(brevoErr)}`, provider: 'brevo' };
+        }
       }
     } catch (err: any) {
       console.warn('[AUTH] Brevo delivery failed or timed out:', err?.message);
@@ -1136,24 +1140,32 @@ async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{ sent: b
   }
 }
 
-// Diagnostic endpoint to check which email variables are detected on Render
-app.get('/api/auth/debug-email', (req: Request, res: Response) => {
+// Diagnostic endpoint to check email config & perform a live test with ?testTo=email@example.com
+app.get('/api/auth/debug-email', async (req: Request, res: Response) => {
   const resendKey = process.env.RESEND_API_KEY;
   const brevoKey = process.env.BREVO_API_KEY;
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const gmailUser = process.env.GMAIL_USER;
   const gmailPass = process.env.GMAIL_APP_PASSWORD;
+  const testTo = req.query.testTo as string;
+
+  let liveTestResult = null;
+  if (testTo && typeof testTo === 'string' && testTo.includes('@')) {
+    liveTestResult = await sendOtpEmail(testTo.trim(), '123456');
+  }
 
   return res.json({
     hasResendApiKey: !!resendKey,
-    resendKeyPrefix: resendKey ? `${resendKey.substring(0, 5)}...` : 'NONE',
+    resendKeyPrefix: resendKey ? `${resendKey.trim().substring(0, 5)}...` : 'NONE',
     hasBrevoApiKey: !!brevoKey,
+    brevoKeyPrefix: brevoKey ? `${brevoKey.trim().substring(0, 8)}...` : 'NONE',
     hasSendgridApiKey: !!sendgridKey,
     hasGmailUser: !!gmailUser,
-    gmailUser: gmailUser ? `${gmailUser.substring(0, 3)}***@...` : 'NONE',
+    gmailUser: gmailUser ? `${gmailUser.trim().substring(0, 4)}***@...` : 'NONE',
     hasGmailAppPassword: !!gmailPass,
     emailFrom: process.env.EMAIL_FROM || 'NOT_SET',
-    renderSmtpNotice: 'Render free tier blocks SMTP ports 465/587 (Gmail). Use RESEND_API_KEY or BREVO_API_KEY (HTTPS REST API) for 100% successful delivery.'
+    liveTestResult: liveTestResult ? liveTestResult : 'Add ?testTo=your-email@gmail.com to this URL to trigger a live test send',
+    renderSmtpNotice: 'Render free tier blocks SMTP ports 465/587 (Gmail). Use BREVO_API_KEY or RESEND_API_KEY for HTTPS delivery.'
   });
 });
 
@@ -1177,16 +1189,21 @@ app.post('/api/auth/send-otp', async (req: Request, res: Response) => {
   // Try real email sending with strict timeout
   const emailResult = await sendOtpEmail(cleanEmail, otp);
 
-  // Return success even if email service is not configured / blocked on Render,
-  // supplying the OTP as instant fallback so user is NEVER stuck in a loading loop!
-  return res.json({
-    success: true,
-    sentViaEmail: emailResult.sent,
-    provider: emailResult.provider || 'demo',
-    demoOtp: emailResult.sent ? undefined : otp,
-    message: emailResult.sent 
-      ? `Verification code sent to ${cleanEmail}. Please check your inbox and spam.`
-      : `Email service is unconfigured on Render. Instant Verification Code: ${otp}`,
+  if (emailResult.sent) {
+    return res.json({
+      success: true,
+      sentViaEmail: true,
+      provider: emailResult.provider || 'email',
+      message: `Verification code sent to ${cleanEmail}. Please check your inbox and spam folder.`,
+      isRegistered
+    });
+  }
+
+  // If email failed to send, return clear failure without any quick code
+  return res.status(500).json({
+    success: false,
+    sentViaEmail: false,
+    error: emailResult.error || 'Failed to deliver verification code to your email. Please verify your email configuration or try again in a few moments.',
     isRegistered
   });
 });

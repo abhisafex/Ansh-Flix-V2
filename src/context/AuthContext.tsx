@@ -96,14 +96,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await res.json();
       return data;
     } catch {
-      // Fallback in case Render network is slow / offline: generate client demo OTP
-      const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      sessionStorage.setItem(`demo_otp_${cleanEmail}`, fallbackOtp);
       return {
-        success: true,
+        success: false,
         sentViaEmail: false,
-        demoOtp: fallbackOtp,
-        message: `Quick Test Code: ${fallbackOtp}`
+        error: 'Network connection error. Could not connect to authentication server.'
       };
     }
   };
@@ -126,15 +122,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data && data.success) {
         return data;
       }
+      return { success: false, error: data?.error || 'Invalid verification code' };
     } catch {
-      // Ignore network error and check fallback
+      return { success: false, error: 'Network error while verifying OTP code' };
     }
-
-    const localOtp = sessionStorage.getItem(`demo_otp_${cleanEmail}`);
-    if (localOtp && localOtp === otp.trim()) {
-      return { success: true, isRegistered: false };
-    }
-    return { success: false, error: 'Invalid verification code' };
   };
 
   // Check if user exists & has PIN
