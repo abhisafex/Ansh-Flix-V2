@@ -45,19 +45,38 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Close search dropdown on click outside
+  // Close search dropdown and collapse search bar on click outside (if empty)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setShowSearchDropdown(false);
+        if (navSearch.trim().length === 0) {
+          setIsSearchExpanded(false);
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [navSearch]);
+
+  const handleOpenSearch = () => {
+    setIsSearchExpanded(true);
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 60);
+  };
+
+  const handleCloseSearch = () => {
+    setNavSearch('');
+    setSearchResults([]);
+    setShowSearchDropdown(false);
+    setIsSearchExpanded(false);
+  };
 
   const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -230,138 +249,173 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </nav>
 
-          {/* Prominent & Redesigned Search Bar */}
-          <div ref={searchContainerRef} className="relative flex-1 max-w-md md:max-w-lg lg:max-w-xl mx-1 sm:mx-2">
-            <div className="relative">
-              <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={navSearch}
-                onChange={handleSearchInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleTriggerFullSearch();
-                  }
-                }}
-                onFocus={() => {
-                  if (searchResults.length > 0 || navSearch.trim().length > 0) {
-                    setShowSearchDropdown(true);
-                  }
-                }}
-                placeholder="Search movies, series, anime, Bollywood..."
-                className="w-full pl-10 sm:pl-11 pr-10 py-2 sm:py-2.5 bg-slate-900/95 border border-slate-700/80 hover:border-slate-600 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-hidden transition-all shadow-inner"
-              />
-              {navSearch && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNavSearch('');
-                    setSearchResults([]);
-                    setShowSearchDropdown(false);
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1 rounded-md hover:bg-slate-800 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Instant Live Search Results Popover (Ultra Visible, Big Posters & Titles) */}
-            {showSearchDropdown && (
-              <div className="absolute top-full mt-2 left-0 right-0 sm:-right-8 md:right-0 bg-slate-950/98 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden z-50 backdrop-blur-2xl divide-y divide-slate-800/80 max-h-[75vh] overflow-y-auto">
-                <div className="px-4 py-2.5 text-xs font-mono font-bold text-slate-300 flex items-center justify-between bg-slate-900/90 border-b border-slate-800">
-                  <span className="flex items-center gap-1.5 text-rose-400">
-                    <Search className="w-3.5 h-3.5" />
-                    SEARCH RESULTS
-                  </span>
-                  {isSearching ? (
-                    <span className="text-rose-400 animate-pulse text-[11px]">Searching TMDB...</span>
-                  ) : (
-                    <span className="text-slate-400 text-[11px]">{searchResults.length} titles found</span>
-                  )}
-                </div>
-
-                {searchResults.length === 0 && !isSearching && (
-                  <div className="p-6 text-center text-xs text-slate-400 space-y-2">
-                    <p>No titles found matching "<span className="text-white font-semibold">{navSearch}</span>".</p>
-                    <p className="text-[11px] text-slate-500">Try searching for full names, actors, or alternate spellings.</p>
+          {/* Expandable Lens Search Bar (Icon by default, expands on click - 100% Mobile Safe) */}
+          <div ref={searchContainerRef} className="relative flex items-center justify-end mx-1 sm:mx-2">
+            {!isSearchExpanded && !navSearch ? (
+              /* Collapsed State: Only Lens Icon Button */
+              <button
+                type="button"
+                onClick={handleOpenSearch}
+                className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 hover:border-rose-500/60 text-rose-400 hover:text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all group shrink-0"
+                title="Search movies, series, Bollywood, anime..."
+                aria-label="Open Search"
+              >
+                <Search className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-rose-400 group-hover:text-white transition-colors" />
+              </button>
+            ) : (
+              /* Expanded State: Seamless Responsive Search Input (Fixed Full Width on Mobile, Sleek Inline on Desktop) */
+              <div className="fixed sm:relative inset-x-0 sm:inset-x-auto top-0 sm:top-auto h-16 sm:h-auto z-50 bg-slate-950/98 sm:bg-transparent px-3 sm:px-0 flex items-center justify-between sm:justify-end border-b border-slate-800 sm:border-b-0 backdrop-blur-2xl sm:backdrop-blur-none animate-in fade-in duration-200 w-full sm:w-auto">
+                <div className="relative w-full sm:w-80 md:w-96 lg:w-[440px] max-w-full">
+                  <div className="relative flex items-center w-full">
+                    <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={navSearch}
+                      onChange={handleSearchInput}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleTriggerFullSearch();
+                        } else if (e.key === 'Escape') {
+                          handleCloseSearch();
+                        }
+                      }}
+                      onFocus={() => {
+                        if (searchResults.length > 0 || navSearch.trim().length > 0) {
+                          setShowSearchDropdown(true);
+                        }
+                      }}
+                      placeholder="Search movies, series, Bollywood, anime..."
+                      className="w-full pl-10 sm:pl-11 pr-20 sm:pr-20 py-2.5 bg-slate-900/95 border border-rose-500/70 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/25 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-hidden transition-all shadow-xl shadow-rose-950/20"
+                      autoFocus
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {navSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNavSearch('');
+                            setSearchResults([]);
+                            setShowSearchDropdown(false);
+                            searchInputRef.current?.focus();
+                          }}
+                          className="text-slate-400 hover:text-white cursor-pointer p-1 rounded-md hover:bg-slate-800 transition-colors"
+                          aria-label="Clear text"
+                          title="Clear input"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleCloseSearch}
+                        className="text-slate-400 hover:text-rose-400 cursor-pointer p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                        aria-label="Close search"
+                        title="Close search"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                )}
 
-                {searchResults.map((item) => {
-                  return (
-                    <div
-                      key={`search-item-${item.id}-${item.type}`}
-                      onClick={() => handleSelectSearchResult(item)}
-                      className="p-3 sm:p-3.5 hover:bg-slate-800/90 cursor-pointer flex items-center gap-3.5 transition-all group border-b border-slate-900/60 last:border-b-0"
-                    >
-                      {/* Big Clear Poster Image */}
-                      <div className="w-16 h-22 sm:w-18 sm:h-26 overflow-hidden rounded-xl bg-slate-900 shrink-0 shadow-lg border border-slate-700/80 relative">
-                        <SmartPoster
-                          src={item.poster}
-                          alt={item.title}
-                          title={item.title}
-                          type={item.type}
-                          year={item.year}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          showTitleOnFallback={true}
-                        />
-                      </div>
-
-                      {/* Content Details: Clear Title & Metadata */}
-                      <div className="flex-1 min-w-0 pr-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="text-sm sm:text-base font-bold text-white group-hover:text-rose-400 line-clamp-2 leading-snug transition-colors">
-                            {item.title}
-                          </h4>
-                          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 shrink-0 font-bold">
-                            {item.type === 'tv' ? 'Series' : 'Movie'}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-1.5">
-                          <span className="font-mono text-slate-300 font-semibold">{item.year || 2024}</span>
-                          {item.rating && (
-                            <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-400/20">
-                              <Star className="w-3 h-3 fill-amber-400" />
-                              {item.rating}
-                            </span>
-                          )}
-                          {item.genres && item.genres.length > 0 && (
-                            <span className="text-slate-400 line-clamp-1">
-                              • {item.genres.slice(0, 2).join(' • ')}
-                            </span>
-                          )}
-                        </div>
-
-                        {item.overview && (
-                          <p className="text-[11px] text-slate-400 line-clamp-1 mt-1 font-normal opacity-90">
-                            {item.overview}
-                          </p>
+                  {/* Instant Live Search Results Popover (100% Screen Safe on Mobile, Crystal Clear Posters & Titles) */}
+                  {showSearchDropdown && (
+                    <div className="fixed sm:absolute left-2.5 right-2.5 sm:left-auto sm:right-0 sm:w-[440px] md:w-[480px] top-16 sm:top-full mt-1 sm:mt-2 bg-slate-950/98 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden z-50 backdrop-blur-2xl divide-y divide-slate-800/80 max-h-[75vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                      <div className="px-3.5 py-2.5 text-xs font-mono font-bold text-slate-300 flex items-center justify-between bg-slate-900/90 border-b border-slate-800">
+                        <span className="flex items-center gap-1.5 text-rose-400">
+                          <Search className="w-3.5 h-3.5" />
+                          SEARCH RESULTS
+                        </span>
+                        {isSearching ? (
+                          <span className="text-rose-400 animate-pulse text-[11px]">Searching TMDB...</span>
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">{searchResults.length} titles found</span>
                         )}
                       </div>
 
-                      {/* Watch Action Button */}
-                      <div className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-600 group-hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-rose-600/30 transition-all shrink-0">
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span className="hidden sm:inline">Watch</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                      {searchResults.length === 0 && !isSearching && (
+                        <div className="p-5 text-center text-xs text-slate-400 space-y-1.5">
+                          <p>No titles found matching "<span className="text-white font-semibold">{navSearch}</span>".</p>
+                          <p className="text-[11px] text-slate-500">Try searching for full names, actors, or alternate spellings.</p>
+                        </div>
+                      )}
 
-                {/* Footer to explore full catalog */}
-                {navSearch.trim() && (
-                  <button
-                    type="button"
-                    onClick={handleTriggerFullSearch}
-                    className="w-full py-3 px-4 bg-slate-900/95 hover:bg-slate-800 text-rose-400 hover:text-rose-300 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer border-t border-slate-800"
-                  >
-                    <span>View all matching titles in Full Catalog for "{navSearch}"</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
+                      {searchResults.map((item) => {
+                        return (
+                          <div
+                            key={`search-item-${item.id}-${item.type}`}
+                            onClick={() => handleSelectSearchResult(item)}
+                            className="p-2.5 sm:p-3.5 hover:bg-slate-800/90 cursor-pointer flex items-center gap-3 transition-all group border-b border-slate-900/60 last:border-b-0"
+                          >
+                            {/* Big Clear Poster Image */}
+                            <div className="w-14 h-20 sm:w-16 sm:h-24 overflow-hidden rounded-xl bg-slate-900 shrink-0 shadow-md border border-slate-700/80 relative">
+                              <SmartPoster
+                                src={item.poster}
+                                alt={item.title}
+                                title={item.title}
+                                type={item.type}
+                                year={item.year}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                showTitleOnFallback={true}
+                              />
+                            </div>
+
+                            {/* Content Details: Clear Title & Metadata */}
+                            <div className="flex-1 min-w-0 pr-1">
+                              <div className="flex items-start justify-between gap-1.5">
+                                <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-rose-400 line-clamp-2 leading-snug transition-colors break-words">
+                                  {item.title}
+                                </h4>
+                                <span className="text-[9px] sm:text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 shrink-0 font-bold">
+                                  {item.type === 'tv' ? 'Series' : 'Movie'}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] text-slate-400 mt-1">
+                                <span className="font-mono text-slate-300 font-semibold">{item.year || 2024}</span>
+                                {item.rating && (
+                                  <span className="flex items-center gap-0.5 font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 text-[10px]">
+                                    <Star className="w-2.5 h-2.5 fill-amber-400" />
+                                    {item.rating}
+                                  </span>
+                                )}
+                                {item.genres && item.genres.length > 0 && (
+                                  <span className="text-slate-400 line-clamp-1 text-[11px]">
+                                    • {item.genres.slice(0, 2).join(' • ')}
+                                  </span>
+                                )}
+                              </div>
+
+                              {item.overview && (
+                                <p className="text-[10px] sm:text-[11px] text-slate-400 line-clamp-1 mt-0.5 font-normal opacity-85">
+                                  {item.overview}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Watch Action Button */}
+                            <div className="p-1.5 sm:px-3 sm:py-2 rounded-xl bg-rose-600 group-hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-rose-600/30 transition-all shrink-0">
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              <span className="hidden sm:inline">Watch</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Footer to explore full catalog */}
+                      {navSearch.trim() && (
+                        <button
+                          type="button"
+                          onClick={handleTriggerFullSearch}
+                          className="w-full py-2.5 px-4 bg-slate-900/95 hover:bg-slate-800 text-rose-400 hover:text-rose-300 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer border-t border-slate-800"
+                        >
+                          <span>View all matching titles for "{navSearch}"</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

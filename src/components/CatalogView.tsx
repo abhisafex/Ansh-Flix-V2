@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Play, 
   Star, 
@@ -21,7 +21,9 @@ import {
   Flame, 
   Clapperboard, 
   X,
+  Trash2,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   RotateCcw,
   Menu,
@@ -31,6 +33,7 @@ import { MediaItem } from '../types';
 import { SAMPLE_MEDIA } from '../data/sampleMedia';
 import { MediaCard } from './MediaCard';
 import { SmartPoster } from './SmartPoster';
+import { NetflixRowSlider } from './NetflixRowSlider';
 import { useAuth } from '../context/AuthContext';
 
 export interface CatalogViewProps {
@@ -113,8 +116,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   onSearchChange,
   onOpenMobileDrawer
 }) => {
-  const { user, isLoggedIn } = useAuth();
-  const continueWatchingList = user?.continueWatching || [];
+  const { user, isLoggedIn, removeContinueWatching, clearAllContinueWatching } = useAuth();
   const selectedCategory = activeCategory;
   const [internalGenre, setInternalGenre] = useState<string>('all');
   const [internalLanguage, setInternalLanguage] = useState<string>('all');
@@ -427,6 +429,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     }
   };
 
+  // Synchronize with external search query changes from Navbar
+  useEffect(() => {
+    if (propSearchQuery !== undefined && propSearchQuery !== activeSearch) {
+      setActiveSearch(propSearchQuery);
+      setInternalSearchQuery(propSearchQuery);
+      if (propSearchQuery.trim() !== '') {
+        fetchSearch(propSearchQuery.trim(), 1, false);
+      }
+    }
+  }, [propSearchQuery]);
+
   // Trigger catalog fetch whenever category, genre, language, or type changes
   useEffect(() => {
     if (activeSearch.trim() === '') {
@@ -494,7 +507,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
   // Curated subsets for Home page multi-row layout from rich SAMPLE_MEDIA + items
   const combinedMedia = [...items, ...SAMPLE_MEDIA];
-  const getUniqueItems = (filteredList: MediaItem[], limit = 6) => {
+  const getUniqueItems = (filteredList: MediaItem[], limit = 12) => {
     const seen = new Set<number>();
     const result: MediaItem[] = [];
     for (const item of filteredList) {
@@ -507,26 +520,249 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     return result;
   };
 
-  // Helper to test if media item is Bollywood
+  // Helper to test if media item is Bollywood or Indian
   const isBollywood = (i: MediaItem) => i.originalLanguage === 'hi' || i.language === 'Hindi' || i.genres?.includes('Bollywood');
+  const isSouthIndian = (i: MediaItem) => 
+    i.originalLanguage === 'te' || 
+    i.originalLanguage === 'ta' || 
+    i.originalLanguage === 'kn' || 
+    i.originalLanguage === 'ml' || 
+    i.language === 'Telugu' || 
+    i.language === 'Tamil' || 
+    i.language === 'Kannada' || 
+    i.language === 'Malayalam';
+  const isIndianSeries = (i: MediaItem) => i.type === 'tv' && (isBollywood(i) || isSouthIndian(i));
 
-  // Segregated Shelves
+  // Segregated Shelves with full 12-item sets across full screen
   const rawNewReleases = newReleasesShelf.length > 0 
     ? newReleasesShelf 
     : combinedMedia.filter(i => i.type === 'movie' && (i.year >= 2024 || i.featured));
-  // Prioritize Bollywood movies at the very front of New Releases!
+  // Prioritize Bollywood movies at the front of New Releases!
   const sortedNewReleases = [...rawNewReleases].sort((a, b) => (isBollywood(b) ? 1 : 0) - (isBollywood(a) ? 1 : 0));
-  const displayNewReleases = getUniqueItems(sortedNewReleases);
-  const hindiTitles = getUniqueItems(combinedMedia.filter(i => isBollywood(i)));
-  const koreanTitles = getUniqueItems(combinedMedia.filter(i => i.originalLanguage === 'ko' || i.language === 'Korean' || i.genres?.includes('K-Drama')));
-  const trendingMovies = getUniqueItems(combinedMedia.filter(i => i.type === 'movie'));
-  const trendingSeries = getUniqueItems(combinedMedia.filter(i => i.type === 'tv'));
-  const actionTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Action')));
-  const comedyTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Comedy')));
-  const horrorTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Horror') || i.genres?.includes('Thriller')));
-  const romanceTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Romance') || i.genres?.includes('Drama')));
-  const top4kTitles = getUniqueItems(combinedMedia.filter(i => (i.rating && i.rating >= 7.8)));
-  const animeTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Animation') || i.genres?.includes('Anime') || i.originalLanguage === 'ja'));
+  const displayNewReleases = getUniqueItems(sortedNewReleases, 12);
+  const hindiTitles = getUniqueItems(combinedMedia.filter(i => isBollywood(i)), 12);
+  const southIndianTitles = getUniqueItems(combinedMedia.filter(i => isSouthIndian(i)), 12);
+  const indianSeries = getUniqueItems(combinedMedia.filter(i => isIndianSeries(i)), 12);
+  const koreanTitles = getUniqueItems(combinedMedia.filter(i => i.originalLanguage === 'ko' || i.language === 'Korean' || i.genres?.includes('K-Drama')), 12);
+  const trendingMovies = getUniqueItems(combinedMedia.filter(i => i.type === 'movie'), 12);
+  const trendingSeries = getUniqueItems(combinedMedia.filter(i => i.type === 'tv'), 12);
+  const actionTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Action')), 12);
+  const comedyTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Comedy')), 12);
+  const horrorTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Horror') || i.genres?.includes('Thriller')), 12);
+  const romanceTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Romance') || i.genres?.includes('Drama')), 12);
+  const top4kTitles = getUniqueItems(combinedMedia.filter(i => (i.rating && i.rating >= 7.8)), 12);
+  const animeTitles = getUniqueItems(combinedMedia.filter(i => i.genres?.includes('Animation') || i.genres?.includes('Anime') || i.originalLanguage === 'ja'), 12);
+
+  // Unified Continue Watching list ensuring ALL items are included and none dropped
+  const allContinueWatching = useMemo(() => {
+    const map = new Map<string, any>();
+    
+    // Auth context continue watching
+    if (user?.continueWatching && Array.isArray(user.continueWatching)) {
+      for (const item of user.continueWatching) {
+        const id = item.mediaId || (item as any).id;
+        if (id) {
+          const key = `${id}-${item.season || 0}-${item.episode || 0}`;
+          map.set(key, item);
+        }
+      }
+    }
+
+    // Local state history
+    if (Array.isArray(history)) {
+      for (const item of history) {
+        const id = item.mediaId || item.id;
+        if (id) {
+          const key = `${id}-${item.season || 0}-${item.episode || 0}`;
+          if (!map.has(key)) {
+            map.set(key, item);
+          }
+        }
+      }
+    }
+
+    // Local storage guest history
+    try {
+      const guestCw = localStorage.getItem('anshsflix_guest_cw');
+      if (guestCw) {
+        const parsed = JSON.parse(guestCw);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            const id = item.mediaId || item.id;
+            if (id) {
+              const key = `${id}-${item.season || 0}-${item.episode || 0}`;
+              if (!map.has(key)) {
+                map.set(key, item);
+              }
+            }
+          }
+        }
+      }
+    } catch {}
+
+    return Array.from(map.values());
+  }, [user?.continueWatching, history]);
+
+  const isSearchingMode = activeSearch.trim() !== '' || searchQuery.trim() !== '';
+
+  if (isSearchingMode) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        {/* Dedicated Search Header */}
+        <div className="bg-slate-900/95 border border-slate-800/90 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700/80 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-md"
+                title="Back to Home Catalog"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Home</span>
+              </button>
+              <div>
+                <h2 className="text-base sm:text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />
+                  <span>Search Results for "<span className="text-rose-400">{activeSearch || searchQuery}</span>"</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono">
+                  {isLoading ? 'Searching titles across TMDB database...' : `${totalResults.toLocaleString()} matching titles found`}
+                </p>
+              </div>
+            </div>
+
+            {/* Media Type Filter Toggle */}
+            <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-950/90 p-1 rounded-xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setSelectedType('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedType === 'all'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedType('movie')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedType === 'movie'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Movies
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedType('tv')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedType === 'tv'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Series
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Search Refinement Input */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search other movies, web series, Bollywood, K-Drama, anime..."
+              className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm font-medium bg-slate-950 border border-slate-700/90 text-slate-200 rounded-xl focus:outline-none focus:border-rose-500 placeholder:text-slate-500 shadow-inner"
+            />
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
+                title="Clear Search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Pure Searched Items List / Grid */}
+        {isLoading ? (
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-16 text-center space-y-4 shadow-xl">
+            <Loader2 className="w-9 h-9 text-rose-500 animate-spin mx-auto" />
+            <p className="text-xs text-slate-400 font-mono">
+              Searching TMDB database & mapping stream links for "{activeSearch || searchQuery}"...
+            </p>
+          </div>
+        ) : items.length === 0 ? (
+          /* Empty State */
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-12 sm:p-16 text-center space-y-4 shadow-xl">
+            <Film className="w-12 h-12 text-slate-600 mx-auto" />
+            <h4 className="text-base sm:text-lg font-bold text-white">No matching titles found</h4>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+              No movies or TV shows matched your query "{activeSearch || searchQuery}". Try searching with alternate spellings, actors, or full names.
+            </p>
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="px-5 py-2.5 bg-rose-600 text-white font-bold rounded-xl text-xs hover:bg-rose-500 transition-colors cursor-pointer shadow-md shadow-rose-600/30"
+            >
+              Clear Search & Back to Home
+            </button>
+          </div>
+        ) : (
+          /* Pure Searched Items Grid */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5">
+            {items
+              .filter(item => selectedType === 'all' || item.type === selectedType)
+              .map((item, idx) => (
+                <MediaCard
+                  key={`search-grid-${item.id}-${item.type}-${idx}`}
+                  item={item}
+                  onSelect={onSelectMedia}
+                  isBookmarked={watchlist.includes(item.id)}
+                  onToggleBookmark={handleToggleBookmark}
+                  size="normal"
+                />
+              ))}
+          </div>
+        )}
+
+        {/* Load More Titles Button / Bottom Pagination */}
+        {items.length > 0 && page < totalPages && (
+          <div className="pt-6 pb-4 flex flex-col sm:flex-row items-center justify-center gap-4 border-t border-slate-800/80">
+            <button
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              className="px-8 py-3 bg-gradient-to-r from-red-500 via-rose-600 to-sky-500 hover:from-red-400 hover:to-sky-400 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm rounded-xl flex items-center gap-2 shadow-lg shadow-rose-600/25 transition-all cursor-pointer"
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading Next Batch...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Load More Titles (+20)
+                </>
+              )}
+            </button>
+
+            <div className="text-xs text-slate-400 font-mono">
+              Showing {items.length} of {totalResults.toLocaleString()} titles
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -641,79 +877,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         </div>
       )}
 
-
-      {/* Continue Watching Shelf (Only if user has history) */}
-      {continueWatchingList.length > 0 && selectedCategory === 'trending' && !hasCustomFilter && (
-        <section className="space-y-3 p-4 sm:p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-rose-500" />
-              <h3 className="text-sm sm:text-base font-bold text-white">Continue Watching</h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                {continueWatchingList.length}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-3.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-800">
-            {continueWatchingList.map((item) => (
-              <div
-                key={`cw-home-${item.mediaId}-${item.season || 0}-${item.episode || 0}`}
-                onClick={() => onSelectMedia({
-                  id: item.mediaId,
-                  title: item.title,
-                  type: item.type,
-                  poster: item.poster || '',
-                  backdrop: item.backdrop || '',
-                  overview: `Continue watching ${item.title}`
-                })}
-                className="group relative flex-shrink-0 w-32 sm:w-40 bg-slate-900 border border-slate-800 hover:border-rose-500/60 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.03] shadow-md flex flex-col"
-              >
-                <div className="relative aspect-[2/3] bg-slate-950 overflow-hidden">
-                  <SmartPoster
-                    src={item.poster}
-                    alt={item.title}
-                    title={item.title}
-                    type={item.type}
-                    className="w-full h-full object-cover group-hover:opacity-85 transition-opacity"
-                    showTitleOnFallback={false}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  
-                  {/* Play Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                    <div className="w-9 h-9 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-600/50 transform scale-90 group-hover:scale-100 transition-transform">
-                      <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                    </div>
-                  </div>
-
-                  {item.type === 'tv' && item.season && item.episode && (
-                    <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-sky-600/90 text-white text-[10px] font-bold font-mono shadow-md">
-                      S{item.season}:E{item.episode}
-                    </div>
-                  )}
-                  
-                  <div className="absolute bottom-0 inset-x-0 h-1 bg-slate-800">
-                    <div className="h-full bg-rose-500 w-3/4" />
-                  </div>
-                </div>
-
-                <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between">
-                  <h4 className="text-xs font-semibold text-white group-hover:text-rose-400 truncate">
-                    {item.title}
-                  </h4>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 font-mono">
-                    <span className="uppercase">{item.type}</span>
-                    <span className="text-rose-400 font-semibold flex items-center gap-0.5">
-                      <Play className="w-2.5 h-2.5 fill-current" /> Resume
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Mobile Active Filter Badge (Only shown if custom filter is active) */}
       {hasCustomFilter && (
@@ -943,29 +1106,34 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         )}
       </div>
 
-      {/* Continue Watching Section (If history exists) */}
-      {history.length > 0 && (
-        <div className="space-y-3">
+      {/* Continue Watching Section (If history exists - Includes all items) */}
+      {allContinueWatching.length > 0 && (
+        <div className="space-y-3 bg-slate-950/50 p-3.5 sm:p-4 rounded-2xl border border-slate-800/80 shadow-lg">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Clock className="w-4 h-4 text-rose-400" />
-              Continue Watching ({history.length})
+            <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Clock className="w-4 h-4 text-rose-500" />
+              <span>Continue Watching</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                {allContinueWatching.length}
+              </span>
             </h3>
             <button
-              onClick={() => {
-                localStorage.removeItem('autostream_history');
+              onClick={async () => {
+                await clearAllContinueWatching();
                 setHistory([]);
               }}
-              className="text-[11px] text-slate-400 hover:text-rose-400 cursor-pointer"
+              className="text-[11px] text-slate-400 hover:text-rose-400 flex items-center gap-1 font-semibold cursor-pointer hover:underline transition-colors"
+              title="Clear all watch history"
             >
-              Clear History
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear History</span>
             </button>
           </div>
 
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
-            {history.map((hist, histIdx) => {
+          <div className="flex gap-3.5 overflow-x-auto pb-2 scrollbar-thin">
+            {allContinueWatching.map((hist, histIdx) => {
               const itemObj: MediaItem = {
-                id: hist.mediaId,
+                id: hist.mediaId || hist.id,
                 title: hist.title,
                 poster: hist.poster,
                 backdrop: hist.poster,
@@ -976,34 +1144,54 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
               return (
                 <div
-                  key={`hist-${hist.mediaId}-${histIdx}`}
+                  key={`hist-${hist.mediaId || hist.id}-${histIdx}`}
                   onClick={() => onSelectMedia(itemObj)}
-                  className="shrink-0 w-44 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-rose-500/80 cursor-pointer transition-all hover:scale-[1.02] shadow-md group"
+                  className="shrink-0 w-44 sm:w-48 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-rose-500/80 cursor-pointer transition-all hover:scale-[1.02] shadow-md group relative"
                 >
+                  {/* Individual Delete Button */}
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const targetId = hist.mediaId || hist.id;
+                      await removeContinueWatching(targetId);
+                      setHistory(prev => prev.filter(h => (h.mediaId || h.id) !== targetId));
+                    }}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/80 hover:bg-rose-600 text-slate-300 hover:text-white transition-all cursor-pointer opacity-80 group-hover:opacity-100 z-20 shadow-md"
+                    title="Remove from history"
+                    aria-label="Remove item"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+
                   <div className="relative aspect-video bg-slate-950">
                     <SmartPoster
                       src={hist.poster}
                       alt={hist.title}
                       title={hist.title}
                       type={hist.type}
-                      className="w-full h-full object-cover group-hover:opacity-80"
+                      className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                       showTitleOnFallback={false}
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Play className="w-6 h-6 text-white fill-white" />
+                      <div className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-600/50">
+                        <Play className="w-5 h-5 fill-white text-white ml-0.5" />
+                      </div>
                     </div>
                   </div>
                   <div className="p-2.5">
-                    <h5 className="text-xs font-semibold text-white truncate">
+                    <h5 className="text-xs font-semibold text-white truncate group-hover:text-rose-400 transition-colors">
                       {hist.title}
                     </h5>
                     <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
                       {hist.season && hist.episode ? (
-                        <span className="font-mono text-rose-400">S{hist.season}:E{hist.episode}</span>
+                        <span className="font-mono text-rose-400 font-bold">S{hist.season}:E{hist.episode}</span>
                       ) : (
                         <span className="font-mono uppercase">{hist.type}</span>
                       )}
-                      <span className="text-rose-400 font-semibold">Resume &rarr;</span>
+                      <span className="text-rose-400 font-semibold flex items-center gap-0.5">
+                        Resume &rarr;
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1016,7 +1204,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {/* 🌟 When On Default Home View -> Segregated Shelves by Genre & Language */}
       {isHomePage ? (
         <div className="space-y-12">
-          {/* Row 1: 🆕 New Releases (Last 21 Days) Shelf */}
+          {/* Row 1: 🆕 New Releases (Last 21 Days - ताज़ा रिलीज़) Placed at Top! */}
           {displayNewReleases.length > 0 && (
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
@@ -1030,46 +1218,47 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         New Releases
                       </h3>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
-                        Last 21 Days
+                        Last 21 Days • ताज़ा रिलीज़
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400">Fresh movies released in the last 21 days</p>
+                    <p className="text-[11px] text-slate-400">Fresh theatrical and digital blockbusters released in the last 21 days</p>
                   </div>
                 </div>
                 <button
                   onClick={() => handleCategorySelect('new_releases')}
                   className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  <span>View All (21 Days)</span>
+                  <span>View All New Releases</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {displayNewReleases.slice(0, 6).map((item, idx) => (
-                  <MediaCard
-                    key={`home-new-releases-${item.id}-${idx}`}
-                    item={item}
-                    onSelect={onSelectMedia}
-                    isBookmarked={watchlist.includes(item.id)}
-                    onToggleBookmark={handleToggleBookmark}
-                  />
-                ))}
-              </div>
+              <NetflixRowSlider
+                items={displayNewReleases}
+                onSelectMedia={onSelectMedia}
+                watchlist={watchlist}
+                onToggleBookmark={handleToggleBookmark}
+                shelfKey="home-new-releases"
+              />
             </div>
           )}
 
-          {/* Row 2: 🇮🇳 Bollywood Spotlight */}
+          {/* Row 2: 🇮🇳 Bollywood Spotlight & Mega Blockbusters */}
           {hindiTitles.length > 0 && (
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🇮🇳</span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl">🇮🇳</span>
                   <div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
-                      Bollywood Spotlight
-                    </h3>
-                    <p className="text-[11px] text-slate-400">Top Bollywood blockbuster movies & cinema</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                        Bollywood Blockbusters & Latest Hits
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        हिंदी सिनेमा
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">Top Bollywood blockbusters, trending cinema, and latest releases</p>
                   </div>
                 </div>
                 <button
@@ -1084,31 +1273,115 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {hindiTitles.map((item, idx) => (
-                  <MediaCard
-                    key={`home-hindi-${item.id}-${idx}`}
-                    item={item}
-                    onSelect={onSelectMedia}
-                    isBookmarked={watchlist.includes(item.id)}
-                    onToggleBookmark={handleToggleBookmark}
-                  />
-                ))}
-              </div>
+              <NetflixRowSlider
+                items={hindiTitles}
+                onSelectMedia={onSelectMedia}
+                watchlist={watchlist}
+                onToggleBookmark={handleToggleBookmark}
+                shelfKey="home-hindi"
+              />
             </div>
           )}
 
-          {/* Row 2: 🇰🇷 K-Drama & Asian Wave */}
+          {/* Row 3: ⚡ South Indian Mega Blockbusters (Tollywood/Kollywood/Mollywood) */}
+          {southIndianTitles.length > 0 && (
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                        South Indian Mega Blockbusters
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        Tollywood • Kollywood • Pan-India
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">Pushpa 2, Kalki 2898 AD, RRR, Salaar, Maharaja, KGF 2, Baahubali & South Indian hits</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    handleCategorySelect('south_indian');
+                  }}
+                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>View All South Indian</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <NetflixRowSlider
+                items={southIndianTitles}
+                onSelectMedia={onSelectMedia}
+                watchlist={watchlist}
+                onToggleBookmark={handleToggleBookmark}
+                shelfKey="home-south"
+              />
+            </div>
+          )}
+
+          {/* Row 4: 🔥 Popular Indian Web Series */}
+          {indianSeries.length > 0 && (
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                    <Tv className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                        Must-Watch Indian Web Series
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        वेब सीरीज
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">Panchayat, Mirzapur, Kota Factory, The Family Man, Farzi, Gullak & top Indian shows</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    handleCategorySelect('popular_tv');
+                    setSelectedLanguage('hi');
+                  }}
+                  className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>View All Series</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <NetflixRowSlider
+                items={indianSeries}
+                onSelectMedia={onSelectMedia}
+                watchlist={watchlist}
+                onToggleBookmark={handleToggleBookmark}
+                shelfKey="home-indianseries"
+              />
+            </div>
+          )}
+
+          {/* Row 5: 🇰🇷 K-Drama & Korean Sensations */}
           {koreanTitles.length > 0 && (
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">🇰🇷</span>
                   <div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
-                      K-Drama & Korean Sensations
-                    </h3>
-                    <p className="text-[11px] text-slate-400">Binge-worthy Korean series and award-winning cinema</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                        K-Drama & Korean Sensations
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        के-ड्रामा
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">Squid Game, Queen of Tears, Crash Landing on You, All of Us Are Dead & top Asian cinema</p>
                   </div>
                 </div>
                 <button
@@ -1123,21 +1396,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {koreanTitles.map((item, idx) => (
-                  <MediaCard
-                    key={`home-korean-${item.id}-${idx}`}
-                    item={item}
-                    onSelect={onSelectMedia}
-                    isBookmarked={watchlist.includes(item.id)}
-                    onToggleBookmark={handleToggleBookmark}
-                  />
-                ))}
-              </div>
+              <NetflixRowSlider
+                items={koreanTitles}
+                onSelectMedia={onSelectMedia}
+                watchlist={watchlist}
+                onToggleBookmark={handleToggleBookmark}
+                shelfKey="home-korean"
+              />
             </div>
           )}
 
-          {/* Row 3: 🔥 Trending Movies Worldwide */}
+          {/* Row 6: 🔥 Trending Movies Worldwide */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1158,20 +1427,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {trendingMovies.map((item, idx) => (
-                <MediaCard
-                  key={`home-movie-${item.id}-${idx}`}
-                  item={item}
-                  onSelect={onSelectMedia}
-                  isBookmarked={watchlist.includes(item.id)}
-                  onToggleBookmark={handleToggleBookmark}
-                />
-              ))}
-            </div>
+            <NetflixRowSlider
+              items={trendingMovies}
+              onSelectMedia={onSelectMedia}
+              watchlist={watchlist}
+              onToggleBookmark={handleToggleBookmark}
+              shelfKey="home-movies"
+            />
           </div>
 
-          {/* Row 4: 📺 Hit TV & Web Series */}
+          {/* Row 7: 📺 Hit TV & Web Series */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1192,20 +1457,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {trendingSeries.map((item, idx) => (
-                <MediaCard
-                  key={`home-tv-${item.id}-${idx}`}
-                  item={item}
-                  onSelect={onSelectMedia}
-                  isBookmarked={watchlist.includes(item.id)}
-                  onToggleBookmark={handleToggleBookmark}
-                />
-              ))}
-            </div>
+            <NetflixRowSlider
+              items={trendingSeries}
+              onSelectMedia={onSelectMedia}
+              watchlist={watchlist}
+              onToggleBookmark={handleToggleBookmark}
+              shelfKey="home-tv"
+            />
           </div>
 
-          {/* Row 5: 💥 High-Octane Action Blockbusters */}
+          {/* Row 8: 💥 High-Octane Action Blockbusters */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1228,20 +1489,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {actionTitles.map((item, idx) => (
-                <MediaCard
-                  key={`home-action-${item.id}-${idx}`}
-                  item={item}
-                  onSelect={onSelectMedia}
-                  isBookmarked={watchlist.includes(item.id)}
-                  onToggleBookmark={handleToggleBookmark}
-                />
-              ))}
-            </div>
+            <NetflixRowSlider
+              items={actionTitles}
+              onSelectMedia={onSelectMedia}
+              watchlist={watchlist}
+              onToggleBookmark={handleToggleBookmark}
+              shelfKey="home-action"
+            />
           </div>
 
-          {/* Row 6: 🍿 Comedy & Feel-Good Hits */}
+          {/* Row 9: 🍿 Comedy & Feel-Good Hits */}
           {comedyTitles.length > 0 && (
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
@@ -1263,21 +1520,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {comedyTitles.map((item, idx) => (
-                  <MediaCard
-                    key={`home-comedy-${item.id}-${idx}`}
-                    item={item}
-                    onSelect={onSelectMedia}
-                    isBookmarked={watchlist.includes(item.id)}
-                    onToggleBookmark={handleToggleBookmark}
-                  />
-                ))}
-              </div>
+              <NetflixRowSlider
+                items={comedyTitles}
+                onSelectMedia={onSelectMedia}
+                watchlist={watchlist}
+                onToggleBookmark={handleToggleBookmark}
+                shelfKey="home-comedy"
+              />
             </div>
           )}
 
-          {/* Row 7: 👻 Horror & Supernatural Chills */}
+          {/* Row 10: 👻 Horror & Supernatural Chills */}
           {horrorTitles.length > 0 && (
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
@@ -1299,21 +1552,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {horrorTitles.map((item, idx) => (
-                  <MediaCard
-                    key={`home-horror-${item.id}-${idx}`}
-                    item={item}
-                    onSelect={onSelectMedia}
-                    isBookmarked={watchlist.includes(item.id)}
-                    onToggleBookmark={handleToggleBookmark}
-                  />
-                ))}
-              </div>
+              <NetflixRowSlider
+                items={horrorTitles}
+                onSelectMedia={onSelectMedia}
+                watchlist={watchlist}
+                onToggleBookmark={handleToggleBookmark}
+                shelfKey="home-horror"
+              />
             </div>
           )}
 
-          {/* Row 8: ⚡ Anime Series & Animations */}
+          {/* Row 11: ⚡ Anime Series & Animations */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1334,20 +1583,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {animeTitles.map((item, idx) => (
-                <MediaCard
-                  key={`home-anime-${item.id}-${idx}`}
-                  item={item}
-                  onSelect={onSelectMedia}
-                  isBookmarked={watchlist.includes(item.id)}
-                  onToggleBookmark={handleToggleBookmark}
-                />
-              ))}
-            </div>
+            <NetflixRowSlider
+              items={animeTitles}
+              onSelectMedia={onSelectMedia}
+              watchlist={watchlist}
+              onToggleBookmark={handleToggleBookmark}
+              shelfKey="home-anime"
+            />
           </div>
 
-          {/* Row 9: ⭐ 4K Ultra HD & Classics */}
+          {/* Row 12: ⭐ 4K Ultra HD & Classics */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1368,17 +1613,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {top4kTitles.map((item, idx) => (
-                <MediaCard
-                  key={`home-4k-${item.id}-${idx}`}
-                  item={item}
-                  onSelect={onSelectMedia}
-                  isBookmarked={watchlist.includes(item.id)}
-                  onToggleBookmark={handleToggleBookmark}
-                />
-              ))}
-            </div>
+            <NetflixRowSlider
+              items={top4kTitles}
+              onSelectMedia={onSelectMedia}
+              watchlist={watchlist}
+              onToggleBookmark={handleToggleBookmark}
+              shelfKey="home-4k"
+            />
           </div>
 
           {/* Browse by Language Interactive Hub */}
@@ -1518,11 +1759,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </button>
             </div>
           ) : (
-            /* Title Cards Grid - Enhanced large cards for search results so titles never cut off */
-            <div className={`grid gap-4 sm:gap-5 ${
+            /* Title Cards Grid - Responsive layout where search cards and titles are crystal clear without overflow */
+            <div className={`grid gap-3 sm:gap-4 lg:gap-5 ${
               activeSearch.trim() !== '' 
-                ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
-                : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
+                ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' 
+                : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'
             }`}>
               {items.map((item, idx) => (
                 <MediaCard
@@ -1531,7 +1772,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   onSelect={onSelectMedia}
                   isBookmarked={watchlist.includes(item.id)}
                   onToggleBookmark={handleToggleBookmark}
-                  size={activeSearch.trim() !== '' ? 'large' : 'normal'}
+                  size="normal"
                 />
               ))}
             </div>

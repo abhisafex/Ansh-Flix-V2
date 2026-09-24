@@ -26,6 +26,7 @@ interface AuthContextType {
   updatePreferences: (prefs: Partial<UserPreferences>) => Promise<void>;
   addContinueWatching: (item: ContinueWatchingItem) => Promise<void>;
   removeContinueWatching: (mediaId: number) => Promise<void>;
+  clearAllContinueWatching: () => Promise<void>;
   toggleWatchlist: (mediaId: number) => boolean;
   isInWatchlist: (mediaId: number) => boolean;
 }
@@ -264,9 +265,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
   };
 
-  // Remove from Continue Watching
+  // Remove single item from Continue Watching (works for both logged in users and guests)
   const removeContinueWatching = async (mediaId: number) => {
+    // Clear from guest local storage keys
+    try {
+      const rawGuest = localStorage.getItem('anshsflix_guest_cw') || '[]';
+      const guestList: ContinueWatchingItem[] = JSON.parse(rawGuest);
+      const updatedGuest = guestList.filter(x => x.mediaId !== mediaId);
+      localStorage.setItem('anshsflix_guest_cw', JSON.stringify(updatedGuest));
+
+      const rawHist = localStorage.getItem('autostream_history') || '[]';
+      const histList: any[] = JSON.parse(rawHist);
+      const updatedHist = histList.filter(x => x.mediaId !== mediaId && x.id !== mediaId);
+      localStorage.setItem('autostream_history', JSON.stringify(updatedHist));
+    } catch {}
+
     if (!user) return;
+
     const updatedList = user.continueWatching.filter(x => x.mediaId !== mediaId);
     const updatedUser: UserProfile = {
       ...user,
@@ -279,6 +294,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email, continueWatching: updatedList })
+      });
+    } catch {}
+  };
+
+  // Clear all Watch History & Continue Watching in 1 Click
+  const clearAllContinueWatching = async () => {
+    try {
+      localStorage.removeItem('anshsflix_guest_cw');
+      localStorage.removeItem('autostream_history');
+    } catch {}
+
+    if (!user) return;
+
+    const updatedUser: UserProfile = {
+      ...user,
+      continueWatching: []
+    };
+    setUser(updatedUser);
+
+    try {
+      await fetch('/api/user/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, continueWatching: [] })
       });
     } catch {}
   };
@@ -356,6 +395,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatePreferences,
         addContinueWatching,
         removeContinueWatching,
+        clearAllContinueWatching,
         toggleWatchlist,
         isInWatchlist
       }}

@@ -31,6 +31,7 @@ import { buildStreamUrl } from '../utils/streamUrl';
 import { NetflixEpisodesList } from './NetflixEpisodesList';
 import { SmartPoster } from './SmartPoster';
 import { ServerModal } from './ServerModal';
+import { CinematicLoadingScreen } from './CinematicLoadingScreen';
 import { useAuth } from '../context/AuthContext';
 import { 
   sendPlaySignalsToIframe, 
@@ -78,6 +79,10 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
   const [key, setKey] = useState<number>(0);
   const [copied, setCopied] = useState<boolean>(false);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(() => isInWatchlist(media.id));
+
+  // Cinematic Loading Screen states
+  const [showCinematicLoader, setShowCinematicLoader] = useState<boolean>(true);
+  const [isStreamReady, setIsStreamReady] = useState<boolean>(false);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -195,12 +200,16 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
   };
 
   const handleIframeLoad = () => {
+    // When stream iframe finishes loading, complete progress and fade out cinematic loading screen
+    setIsStreamReady(true);
     // When Videasy or any provider finishes loading, auto-click play button immediately
     executeAutoClickPlay(150);
   };
 
-  // Auto-trigger when media, season, episode, or provider changes
+  // Auto-trigger cinematic loading whenever media, season, episode, or provider changes
   useEffect(() => {
+    setShowCinematicLoader(true);
+    setIsStreamReady(false);
     executeAutoClickPlay(300);
   }, [detailedMediaIdSafe(media.id), currentSeason, currentEpisode, selectedProvider.id, key]);
 
@@ -502,6 +511,19 @@ export const WatchPlayer: React.FC<WatchPlayerProps> = ({
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope; clipboard-write; web-share"
               referrerPolicy="no-referrer"
             />
+
+            {/* Cinematic Red Glowing Brand Loading Screen */}
+            {showCinematicLoader && (
+              <CinematicLoadingScreen
+                key={`cinematic-loader-${key}-${detailedMedia.id}-${currentSeason}-${currentEpisode}-${selectedProvider.id}`}
+                media={detailedMedia}
+                provider={selectedProvider}
+                season={isTv ? currentSeason : undefined}
+                episode={isTv ? currentEpisode : undefined}
+                isStreamReady={isStreamReady}
+                onFinished={() => setShowCinematicLoader(false)}
+              />
+            )}
 
             {/* Smart Server Failure / Buffering Popup Alert */}
             {loadTimeoutTriggered && (

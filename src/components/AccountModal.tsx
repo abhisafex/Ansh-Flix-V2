@@ -30,7 +30,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({ onSelectMedia, onPla
     setIsAccountModalOpen, 
     logout, 
     updatePreferences, 
-    removeContinueWatching 
+    removeContinueWatching,
+    clearAllContinueWatching
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'continue' | 'watchlist' | 'preferences'>('continue');
@@ -150,7 +151,19 @@ export const AccountModal: React.FC<AccountModalProps> = ({ onSelectMedia, onPla
                   <p className="mt-1">When you play any movie or series, it will automatically appear here.</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[11px] font-semibold text-slate-400">
+                      {user.continueWatching.length} item{user.continueWatching.length > 1 ? 's' : ''} in watch history
+                    </span>
+                    <button
+                      onClick={() => clearAllContinueWatching()}
+                      className="text-[11px] text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold cursor-pointer hover:underline"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Clear All History</span>
+                    </button>
+                  </div>
                   {user.continueWatching.map((item) => (
                     <div
                       key={`${item.mediaId}-${item.season || 0}-${item.episode || 0}`}

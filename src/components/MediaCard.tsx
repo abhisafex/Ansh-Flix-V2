@@ -103,8 +103,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
         <div>
           <h4 
             onClick={() => onSelect(item)}
-            className={`font-bold text-white group-hover:text-rose-400 transition-colors line-clamp-2 cursor-pointer leading-snug ${
-              isLarge ? 'text-sm sm:text-base min-h-[2.5rem]' : 'text-xs sm:text-sm min-h-[2.2rem]'
+            className={`font-bold text-white group-hover:text-rose-400 transition-colors line-clamp-2 cursor-pointer leading-snug break-words ${
+              isLarge ? 'text-sm sm:text-base min-h-[2.5rem]' : 'text-xs sm:text-sm min-h-[2rem]'
             }`}
             title={item.title}
           >

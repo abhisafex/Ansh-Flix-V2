@@ -98,8 +98,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
-      {/* Top Navigation - Clean & Redesigned Bar */}
+    <div className="min-h-screen bg-[#141414] text-zinc-100 flex flex-col font-sans selection:bg-[#E50914] selection:text-white">
+      {/* Top Navigation - Clean Netflix Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -116,7 +116,7 @@ export default function App() {
       />
 
       {/* Main Content Viewport */}
-      <main className={`flex-1 w-full mx-auto ${activeTab === 'player' ? 'max-w-7xl px-2 sm:px-4 py-2' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-6'}`}>
+      <main className={`flex-1 w-full mx-auto ${activeTab === 'player' ? 'max-w-7xl px-2 sm:px-4 py-2' : 'max-w-7xl px-3 sm:px-6 lg:px-8 py-6'}`}>
         {activeTab === 'browse' && (
           <CatalogView
             onSelectMedia={handleSelectMedia}

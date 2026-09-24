@@ -474,10 +474,65 @@ app.get(['/api/tmdb/catalog', '/tmdb/catalog'], async (req: Request, res: Respon
     tmdbUrl = `https://api.themoviedb.org/3/discover/${targetType}?${discoverParams}`;
   } else {
     switch (category) {
-      case 'trending':
-        tmdbUrl = `https://api.themoviedb.org/3/trending/all/day?api_key=${apiKey}&page=${page}`;
-        explicitType = undefined;
+      case 'trending': {
+        // Indian User Recommendation Tuning: Combine Indian Blockbusters (Bollywood/South) + Indian TV Series + Global Trending
+        try {
+          const indianMoviesUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${apiKey}&page=${page}&sort_by=popularity.desc&with_original_language=hi|te|ta`;
+          const indianTvUrl = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&page=${page}&sort_by=popularity.desc&with_original_language=hi`;
+          const globalTrendingUrl = `https://api.themoviedb.org/3/trending/all/day?api_key=${apiKey}&page=${page}`;
+
+          const [indMRes, indTRes, globRes] = await Promise.all([
+            fetch(indianMoviesUrl),
+            fetch(indianTvUrl),
+            fetch(globalTrendingUrl)
+          ]);
+
+          const [indMData, indTData, globData] = await Promise.all([
+            indMRes.ok ? indMRes.json() : { results: [] },
+            indTRes.ok ? indTRes.json() : { results: [] },
+            globRes.ok ? globRes.json() : { results: [] }
+          ]);
+
+          const indMList = (indMData.results || []).filter((i: any) => i.poster_path).map((i: any) => formatTmdbItem(i, 'movie'));
+          const indTList = (indTData.results || []).filter((i: any) => i.poster_path).map((i: any) => formatTmdbItem(i, 'tv'));
+          const globList = (globData.results || []).filter((i: any) => i.poster_path).map((i: any) => formatTmdbItem(i, undefined));
+
+          // Interleave: Indian movies, Indian series, and top global hits
+          const seenIds = new Set<number>();
+          const combined: any[] = [];
+
+          // Add Indian blockbusters first
+          for (let i = 0; i < Math.max(indMList.length, indTList.length, globList.length); i++) {
+            if (i < indMList.length && !seenIds.has(indMList[i].id)) {
+              seenIds.add(indMList[i].id);
+              combined.push(indMList[i]);
+            }
+            if (i < indTList.length && !seenIds.has(indTList[i].id)) {
+              seenIds.add(indTList[i].id);
+              combined.push(indTList[i]);
+            }
+            if (i < globList.length && !seenIds.has(globList[i].id)) {
+              seenIds.add(globList[i].id);
+              combined.push(globList[i]);
+            }
+          }
+
+          const fallback = combined.length === 0 ? filterSampleMedia('trending', genre, language, mediaType, platform) : combined;
+          const payload = {
+            live: true,
+            page,
+            totalPages: Math.max(indMData.total_pages || 1, globData.total_pages || 1),
+            totalResults: (indMData.total_results || 0) + (globData.total_results || 0) || fallback.length,
+            results: fallback
+          };
+          setCached(cacheKey, payload);
+          return res.json(payload);
+        } catch {
+          tmdbUrl = `https://api.themoviedb.org/3/trending/all/day?api_key=${apiKey}&page=${page}`;
+          explicitType = undefined;
+        }
         break;
+      }
       case 'new_releases': {
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
